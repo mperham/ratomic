@@ -23,8 +23,11 @@ Gem::Specification.new do |spec|
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
     ls.readlines("\x0", chomp: true).select do |f|
-      (f == gemspec) || f.start_with?(*%w[lib/ ext/])
+      (f == gemspec) || f.start_with?(*%w[lib/ ext/ rs/])
     end
+  end
+  %w(lib/ratomic/ratomic.bundle lib/ratomic/ratomic.so).each do |file|
+    File.exist?(file) && spec.files << file
   end
   spec.require_paths = ["lib"]
   spec.extensions = ["ext/ratomic/extconf.rb"]

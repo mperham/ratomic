@@ -28,11 +28,10 @@ VALUE rb_atomic_counter_read(VALUE self) {
   return LONG2FIX(atomic_counter_read(counter));
 }
 
-static void init_counter(VALUE rb_mCAtomics) {
+static void init_counter(VALUE rb_mRoot) {
   VALUE rb_cAtomicCounter =
-      rb_define_class_under(rb_mCAtomics, "Counter", rb_cObject);
+      rb_define_class_under(rb_mRoot, "Counter", rb_cObject);
   rb_define_alloc_func(rb_cAtomicCounter, rb_atomic_counter_alloc);
-  rb_define_method(rb_cAtomicCounter, "increment", rb_atomic_counter_increment,
-                   0);
+  rb_define_method(rb_cAtomicCounter, "increment", rb_atomic_counter_increment, 0);
   rb_define_method(rb_cAtomicCounter, "read", rb_atomic_counter_read, 0);
 }
