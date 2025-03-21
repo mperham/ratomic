@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.summary = "Mutable data structures for Ractors"
   spec.description = spec.summary
   spec.homepage = "https://github.com/mperham/ratomic"
-  spec.license = "LGPLv3"
+  spec.license = "MIT"
   spec.required_ruby_version = ">= 3.4.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
@@ -22,9 +22,8 @@ Gem::Specification.new do |spec|
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
-    ls.readlines("\x0", chomp: true).reject do |f|
-      (f == gemspec) ||
-        f.start_with?(*%w[test/ spec/ features/ .git .github appveyor Gemfile])
+    ls.readlines("\x0", chomp: true).select do |f|
+      (f == gemspec) || f.start_with?(*%w[lib/ ext/])
     end
   end
   spec.require_paths = ["lib"]
