@@ -6,7 +6,9 @@ require "rake/extensiontask"
 require "standard/rake"
 
 GEMSPEC = Gem::Specification.load("ratomic.gemspec")
-Rake::ExtensionTask.new("ratomic", GEMSPEC)
+Rake::ExtensionTask.new("ratomic", GEMSPEC) do |task|
+  task.lib_dir = "lib/ratomic"
+end
 Minitest::TestTask.create
 
 task :rust do

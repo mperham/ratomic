@@ -31,7 +31,8 @@ A multi-producer, multi-consumer queue.
 ```ruby
 q = Ratomic::Queue.new
 q.push(Object.new)
-q.pop # => Object
+q.pop # => <Object>
+```
 
 ## License
 
