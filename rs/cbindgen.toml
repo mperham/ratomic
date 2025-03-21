@@ -1,0 +1,12 @@
+language = "c"
+include_guard = "RUST_ATOMICS_H"
+style = "type"
+
+[export.rename]
+"AtomicCounter" = "atomic_counter_t"
+"ConcurrentHashMap" = "concurrent_hash_map_t"
+"FixedSizeObjectPool" = "fixed_size_object_pool_t"
+"MpmcQueue" = "mpmc_queue_t"
+
+[export]
+include = ["QueuePushArg"]
