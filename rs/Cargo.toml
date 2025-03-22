@@ -19,6 +19,7 @@ libc = "0.2.170"
 panic = "abort"
 lto = true
 codegen-units = 1
+strip = true
 
 [[bin]]
 bench = false
