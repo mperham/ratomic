@@ -12,8 +12,12 @@ impl AtomicCounter {
         }
     }
 
-    pub fn inc(&self) {
-        self.value.fetch_add(1, Ordering::Relaxed);
+    pub fn inc(&self, amt: u64) {
+        self.value.fetch_add(amt, Ordering::Relaxed);
+    }
+
+    pub fn dec(&self, amt: u64) {
+        self.value.fetch_sub(amt, Ordering::Relaxed);
     }
 
     pub fn read(&self) -> u64 {
@@ -27,9 +31,15 @@ pub unsafe extern "C" fn atomic_counter_init(counter: *mut AtomicCounter, n: u64
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn atomic_counter_increment(counter: *const AtomicCounter) {
+pub unsafe extern "C" fn atomic_counter_increment(counter: *const AtomicCounter, amt: u64) {
     let counter = unsafe { counter.as_ref().unwrap() };
-    counter.inc();
+    counter.inc(amt);
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn atomic_counter_decrement(counter: *const AtomicCounter, amt: u64) {
+    let counter = unsafe { counter.as_ref().unwrap() };
+    counter.dec(amt);
 }
 
 #[unsafe(no_mangle)]

@@ -6,9 +6,23 @@ require_relative "ratomic/ratomic"
 module Ratomic
   class Error < StandardError; end
 
+  ##
+  # An atomic counter which can be incremented and decremented
+  # safely by multiple Ractors concurrently.
   class Counter
-    # def increment
-    # def read
+    def value
+      read
+    end
+
+    def inc(amt = 1)
+      raise ArgumentError, "amount must be positive: #{amt}" if amt < 0
+      increment(amt)
+    end
+
+    def dec(amt = 1)
+      raise ArgumentError, "amount must be positive: #{amt}" if amt < 0
+      decrement(amt)
+    end
   end
 
   class Undefined
@@ -18,7 +32,11 @@ module Ratomic
   end
   UNDEFINED = Ractor.make_shareable(Undefined.new)
 
-  class FixedSizeObjectPool
+  class Pool < FixedSizeObjectPool
+    def initialize(size = 5, timeout = 1.0)
+      super(size, (timeout * 1000).to_i)
+    end
+
     def with
       obj_and_idx = checkout
       if obj_and_idx.nil?
@@ -33,20 +51,18 @@ module Ratomic
     end
   end
 
-  class ConcurrentHashMap
-    def self.with_keys(known_keys)
-      map = new
-      known_keys.each { |key| map.set(key, 0) }
-      map
+  class Map < ConcurrentHashMap
+    def []=(key, value)
+      set(key, value)
     end
 
-    def increment(key)
-      fetch_and_modify(key) { |v| v + 1 }
+    def [](key)
+      get(key)
     end
 
-    def sum(known_keys)
-      known_keys.map { |k| get(k) }.sum
-    end
+    # TODO add as much of the Hash API as possible.
+    # Stretch goal? Support Enumerable if DashMap can safely
+    # iterate.
   end
 
 end

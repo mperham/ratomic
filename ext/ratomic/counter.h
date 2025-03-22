@@ -15,10 +15,17 @@ VALUE rb_atomic_counter_alloc(VALUE klass) {
   return obj;
 }
 
-VALUE rb_atomic_counter_increment(VALUE self) {
+VALUE rb_atomic_counter_increment(VALUE self, VALUE amt) {
   atomic_counter_t *counter;
   TypedData_Get_Struct(self, atomic_counter_t, &atomic_counter_data, counter);
-  atomic_counter_increment(counter);
+  atomic_counter_increment(counter, FIX2LONG(amt));
+  return Qnil;
+}
+
+VALUE rb_atomic_counter_decrement(VALUE self, VALUE amt) {
+  atomic_counter_t *counter;
+  TypedData_Get_Struct(self, atomic_counter_t, &atomic_counter_data, counter);
+  atomic_counter_decrement(counter, FIX2LONG(amt));
   return Qnil;
 }
 
@@ -32,6 +39,7 @@ static void init_counter(VALUE rb_mRoot) {
   VALUE rb_cAtomicCounter =
       rb_define_class_under(rb_mRoot, "Counter", rb_cObject);
   rb_define_alloc_func(rb_cAtomicCounter, rb_atomic_counter_alloc);
-  rb_define_method(rb_cAtomicCounter, "increment", rb_atomic_counter_increment, 0);
+  rb_define_method(rb_cAtomicCounter, "increment", rb_atomic_counter_increment, 1);
+  rb_define_method(rb_cAtomicCounter, "decrement", rb_atomic_counter_decrement, 1);
   rb_define_method(rb_cAtomicCounter, "read", rb_atomic_counter_read, 0);
 }

@@ -68,8 +68,7 @@ static void init_hashmap(VALUE rb_mRoot) {
   rb_define_alloc_func(rb_cConcurrentHashMap, rb_concurrent_hash_map_alloc);
   rb_define_method(rb_cConcurrentHashMap, "get", rb_concurrent_hash_map_get, 1);
   rb_define_method(rb_cConcurrentHashMap, "set", rb_concurrent_hash_map_set, 2);
-  rb_define_method(rb_cConcurrentHashMap, "clear", rb_concurrent_hash_map_clear,
-                   0);
+  rb_define_method(rb_cConcurrentHashMap, "clear", rb_concurrent_hash_map_clear, 0);
   rb_define_method(rb_cConcurrentHashMap, "fetch_and_modify",
                    rb_concurrent_hash_map_fetch_and_modify, 1);
 }

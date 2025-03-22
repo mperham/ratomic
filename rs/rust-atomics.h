@@ -29,7 +29,9 @@ typedef struct {
 
 void atomic_counter_init(atomic_counter_t *counter, uint64_t n);
 
-void atomic_counter_increment(const atomic_counter_t *counter);
+void atomic_counter_increment(const atomic_counter_t *counter, uint64_t amt);
+
+void atomic_counter_decrement(const atomic_counter_t *counter, uint64_t amt);
 
 uint64_t atomic_counter_read(const atomic_counter_t *counter);
 

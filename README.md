@@ -13,15 +13,31 @@ bundle add ratomic
 
 ## Usage
 
-Ratomic provides several usæful structures:
+Ratomic provides several useful Ractor-safe structures.
+Note the APIs available are frequently very limited compared to Ruby's broad API.
+
+These structures are designed for use as class-level constants so they can be shared by numerous Ractors.
 
 ### `Ratomic::Counter`
 
 ```ruby
 c = Ratomic::Counter.new
 c.read # => 0
-c.increment
-c.read # => 1
+c.inc
+c.inc(5)
+c.dec(1)
+c.dec
+c.read # => 4
+```
+
+### `Ratomic::Map`
+
+A Ractor-safe map/hash structure:
+
+```ruby
+HASH = Ratomic::Map.new
+HASH["mike"] = 123
+HASH["mike"] # => 123
 ```
 
 ### `Ratomic::Queue`
