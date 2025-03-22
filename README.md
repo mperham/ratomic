@@ -3,6 +3,13 @@
 Ratomic provides mutable data structures for use with Ruby's Ractors.
 This allows Ruby code to scale beyond the infamous GVL.
 
+# HELP WANTED!
+
+> If you know Rust and Ruby C-extensions, we need your help!
+> This project is brand new and could use your knowledge!
+> If you don't know Rust or C, consider this a challenge to learn and solve.
+> Read through the [Issues](/mperham/ratomic/issues) to find work that sounds interesting to you.
+
 ## Installation
 
 Install the gem and add to the application's Gemfile by executing:
