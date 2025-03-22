@@ -72,6 +72,13 @@ q.push(Object.new)
 q.pop # => <Object>
 ```
 
+## Thanks
+
+[Ilya Bylich](https://github.com/iliabylich) wrote and documented his original research at [Ruby, Ractors, and Lock-free Data Structures/](https://iliabylich.github.io/ruby-ractors-and-lock-free-data-structures/).
+Thank you for your impressive work, Ilya!
+
+This repo is further research into the usability and limitations of Ractor-friendly structures in Ruby code and gems.
+
 ## License
 
 [MIT License](https://opensource.org/licenses/MIT).
