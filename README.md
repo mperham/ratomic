@@ -8,7 +8,7 @@ This allows Ruby code to scale beyond the infamous GVL.
 > If you know Rust and Ruby C-extensions, we need your help!
 > This project is brand new and could use your knowledge!
 > If you don't know Rust or C, consider this a challenge to learn and solve.
-> Read through the [Issues](/mperham/ratomic/issues) to find work that sounds interesting to you.
+> Read through the [issues](//github.com/mperham/ratomic/issues) to find work that sounds interesting to you.
 
 ## Installation
 
@@ -17,6 +17,8 @@ Install the gem and add to the application's Gemfile by executing:
 ```bash
 bundle add ratomic
 ```
+
+TODO: We have not released a gem yet.
 
 ## Usage
 
@@ -37,6 +39,17 @@ c.dec
 c.read # => 4
 ```
 
+### `Ratomic::Pool`
+
+A Ractor-safe object pool:
+
+```ruby
+POOL = Ratomic::Pool.new(5, 1.0) { Object.new }
+POOL.with do |obj|
+  # do something with obj
+end
+```
+
 ### `Ratomic::Map`
 
 A Ractor-safe map/hash structure:
@@ -45,6 +58,8 @@ A Ractor-safe map/hash structure:
 HASH = Ratomic::Map.new
 HASH["mike"] = 123
 HASH["mike"] # => 123
+HASH.fetch_and_modify(key) {|value| v + 1 }
+HASH.clear
 ```
 
 ### `Ratomic::Queue`
