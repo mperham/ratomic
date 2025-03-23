@@ -2,17 +2,9 @@
 require 'ratomic'
 require 'redis-client'
 
-COUNTS = Ratomic::Map.new
-POOL = Ratomic::Pool.new(11, 1) { RedisClient.new }
-POOL.with {|c| c.call("flushdb") }
-
 queues = %w(one two three four five)
-POOL.with do |conn|
-  queues.each do |q|
-    COUNTS.set(q, Ratomic::Counter.new)
-    conn.call("lpush", q, "element")
-  end
-end
+COUNTS = Ratomic::Map.new
+POOL = Ratomic::Pool.new(50, 1) { RedisClient.new }
 
 class Ractor
   # create same API as Thread
@@ -21,6 +13,14 @@ end
 
 types = [Thread, Ractor]
 types.each do |klass|
+  POOL.with {|c| c.call("flushdb") }
+  POOL.with do |conn|
+    queues.each do |q|
+      COUNTS.set(q, Ratomic::Counter.new)
+      conn.call("lpush", q, "element")
+    end
+  end
+
   ending = Time.now + 10
   concurrency = []
   5.times do
