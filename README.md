@@ -10,6 +10,18 @@ This allows Ruby code to scale beyond the infamous GVL.
 > If you don't know Rust or C, consider this a challenge to learn and solve.
 > Read through the [issues](//github.com/mperham/ratomic/issues) to find work that sounds interesting to you.
 
+## How to contribute
+
+Please make sure to understand our [Code of Conduct](./CODE_OF_CONDUCT.md).
+
+After changing code, you can give it a spin with:
+
+```bash
+rake
+```
+
+This should compile the Rust code and run all tests.
+
 ## Installation
 
 Install the gem and add to the application's Gemfile by executing:
