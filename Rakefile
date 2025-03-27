@@ -12,7 +12,11 @@ end
 Minitest::TestTask.create
 
 task :rust do
-  `make rust`
+  system("make rust") or abort("ERROR: Rust compilation failed")
 end
 
-task default: %i[clean clobber rust compile test build]
+task :bindgen do
+  system("make bindgen")
+end
+
+task default: %i[clean clobber rust bindgen compile test build]
