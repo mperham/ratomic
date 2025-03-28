@@ -4,6 +4,7 @@ class TestHashMap < Minitest::Test
   MAP = Ratomic::Map.new
 
   def test_ractor_hashing
+    MAP.clear
     cpus = Etc.nprocessors
     iter = 100000
     ractors = 1.upto(cpus).map do |i|
@@ -18,5 +19,10 @@ class TestHashMap < Minitest::Test
       assert_equal iter+idx, MAP.get(idx)
       assert_equal iter+idx, MAP[idx]
     end
+  end
+
+  def test_size
+    MAP.clear
+    assert_equal 123, MAP.size
   end
 end

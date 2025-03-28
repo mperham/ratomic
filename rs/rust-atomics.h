@@ -45,6 +45,8 @@ void concurrent_hash_map_drop(concurrent_hash_map_t *hashmap);
 
 void concurrent_hash_map_clear(const concurrent_hash_map_t *hashmap);
 
+size_t concurrent_hash_map_size(const concurrent_hash_map_t *hashmap);
+
 unsigned long concurrent_hash_map_get(const concurrent_hash_map_t *hashmap,
                                       unsigned long key,
                                       unsigned long fallback);
