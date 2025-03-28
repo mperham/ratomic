@@ -8,3 +8,4 @@
 /tmp/
 *.bundle
 rs/target
+lib/ratomic/ratomic.so
