@@ -31,4 +31,19 @@ class TestHashMap < Minitest::Test
     MAP.clear
     assert_equal 0, MAP.size
   end
+
+  def test_size_with_ractors
+    MAP.clear
+    cpus = Etc.nprocessors
+    iter = 100_000
+    ractors = 1.upto(cpus).map do |i|
+      Ractor.new(iter) do |iter|
+        iter.times { |idx| MAP[idx] = (iter + idx) }
+        Ractor.yield :done
+      end
+    end
+    ractors.map(&:take)
+
+    assert_equal 100_000, MAP.size
+  end
 end
