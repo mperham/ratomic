@@ -21,8 +21,14 @@ class TestHashMap < Minitest::Test
     end
   end
 
-  def test_size
+  def test_size_no_ractors
     MAP.clear
-    assert_equal 123, MAP.size
+    assert_equal 0, MAP.size
+    MAP.set(1, 2)
+    assert_equal 1, MAP.size
+    MAP.set(2, 3)
+    assert_equal 2, MAP.size
+    MAP.clear
+    assert_equal 0, MAP.size
   end
 end
