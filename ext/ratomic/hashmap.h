@@ -53,6 +53,13 @@ VALUE rb_concurrent_hash_map_clear(VALUE self) {
   return Qnil;
 }
 
+VALUE rb_concurrent_hash_map_size(VALUE self) {
+  concurrent_hash_map_t *hashmap;
+  TypedData_Get_Struct(self, concurrent_hash_map_t, &concurrent_hash_map_data,
+                       hashmap);
+  return LONG2FIX(concurrent_hash_map_size(hashmap));
+}
+
 VALUE rb_concurrent_hash_map_fetch_and_modify(VALUE self, VALUE key) {
   rb_need_block();
   concurrent_hash_map_t *hashmap;
@@ -69,6 +76,7 @@ static void init_hashmap(VALUE rb_mRoot) {
   rb_define_method(rb_cConcurrentHashMap, "get", rb_concurrent_hash_map_get, 1);
   rb_define_method(rb_cConcurrentHashMap, "set", rb_concurrent_hash_map_set, 2);
   rb_define_method(rb_cConcurrentHashMap, "clear", rb_concurrent_hash_map_clear, 0);
+  rb_define_method(rb_cConcurrentHashMap, "size", rb_concurrent_hash_map_size, 0);
   rb_define_method(rb_cConcurrentHashMap, "fetch_and_modify",
                    rb_concurrent_hash_map_fetch_and_modify, 1);
 }

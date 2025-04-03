@@ -47,6 +47,10 @@ impl ConcurrentHashMap {
         self.map.clear()
     }
 
+    fn size(&self) -> usize {
+        self.map.len()
+    }
+
     fn fetch_and_modify(&self, key: c_ulong, f: extern "C" fn(c_ulong) -> c_ulong) {
         let key = RubyHashEql(key);
         self.map.alter(&key, |_, v| f(v));
@@ -74,6 +78,12 @@ pub unsafe extern "C" fn concurrent_hash_map_drop(hashmap: *mut ConcurrentHashMa
 pub unsafe extern "C" fn concurrent_hash_map_clear(hashmap: *const ConcurrentHashMap) {
     let hashmap = unsafe { hashmap.as_ref().unwrap() };
     hashmap.clear();
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn concurrent_hash_map_size(hashmap: *const ConcurrentHashMap) -> usize {
+    let hashmap = unsafe { hashmap.as_ref().unwrap() };
+    hashmap.size()
 }
 
 #[unsafe(no_mangle)]
