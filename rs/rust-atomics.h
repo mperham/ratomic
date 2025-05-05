@@ -90,4 +90,6 @@ void *mpmc_queue_pop(void *q);
 
 void *mpmc_queue_is_empty(void *q);
 
+void *mpmc_queue_size(void *q);
+
 #endif  /* RUST_ATOMICS_H */
