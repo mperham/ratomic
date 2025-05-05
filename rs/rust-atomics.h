@@ -88,4 +88,6 @@ void *mpmc_queue_push(void *push_paylod);
 
 void *mpmc_queue_pop(void *q);
 
+void *mpmc_queue_is_empty(void *q);
+
 #endif  /* RUST_ATOMICS_H */
