@@ -57,6 +57,18 @@ VALUE rb_mpmc_queue_pop(VALUE self) {
   return item;
 }
 
+VALUE rb_mpmc_queue_peek(VALUE self) {
+  mpmc_queue_t *queue;
+  TypedData_Get_Struct(self, mpmc_queue_t, &mpmc_queue_data, queue);
+  void *ptr = rb_thread_call_without_gvl(mpmc_queue_peek, queue, NULL, NULL);
+
+  if (ptr == NULL) {
+    return Qnil;
+  }
+  VALUE item = (VALUE)ptr;
+  return item;
+}
+
 VALUE rb_mpmc_queue_is_empty(VALUE self) {
   mpmc_queue_t *queue;
   TypedData_Get_Struct(self, mpmc_queue_t, &mpmc_queue_data, queue);
@@ -81,6 +93,7 @@ static void init_mpmc_queue(VALUE rb_mRoot) {
   rb_define_method(rb_cMpmcQueue, "initialize", rb_mpmc_queue_initialize, 1);
   rb_define_method(rb_cMpmcQueue, "push", rb_mpmc_queue_push, 1);
   rb_define_method(rb_cMpmcQueue, "pop", rb_mpmc_queue_pop, 0);
+  rb_define_method(rb_cMpmcQueue, "peek", rb_mpmc_queue_peek, 0);
   rb_define_method(rb_cMpmcQueue, "empty?", rb_mpmc_queue_is_empty, 0); 
   rb_define_method(rb_cMpmcQueue, "length", rb_mpmc_queue_size, 0);
   rb_define_alias(rb_cMpmcQueue, "size", "length");
