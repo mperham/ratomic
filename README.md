@@ -79,9 +79,17 @@ HASH.clear
 A multi-producer, multi-consumer queue.
 
 ```ruby
-q = Ratomic::Queue.new
-q.push(Object.new)
-q.pop # => <Object>
+q = Ratomic::Queue.new(128) 
+
+q.push("hello")
+q.push("world")
+
+q.size     # => 2
+q.empty?   # => false
+q.peek     # => "hello"
+item = q.pop # => "hello"
+item = q.pop # => "world"
+q.empty?   # => true
 ```
 
 ## Thanks
