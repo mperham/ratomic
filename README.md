@@ -92,6 +92,8 @@ item = q.pop # => "world"
 q.empty?   # => true
 ```
 
+Since `Ratomic::Queue` is a concurrent queue, the `size`, `empty?`, and `peek` methods provide only a best-effort guess — the values they return might be stale or incorrect.
+
 ## Thanks
 
 [Ilya Bylich](https://github.com/iliabylich) wrote and documented his original research at [Ruby, Ractors, and Lock-free Data Structures/](https://iliabylich.github.io/ruby-ractors-and-lock-free-data-structures/).
