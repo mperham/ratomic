@@ -146,6 +146,26 @@ impl MpmcQueue {
         }
     }
 
+    pub fn peek(&self) -> Option<c_ulong> {
+        let pos = self.dequeue_pos.load(Ordering::Relaxed);
+        let cell = &self.buffer[pos & self.buffer_mask];
+        let seq = cell.sequence.load(Ordering::Acquire);
+        let diff = seq as isize - (pos + 1) as isize;
+        if diff == 0 {
+            Some(cell.data.get())
+        } else {
+            None
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.dequeue_pos.load(Ordering::Relaxed) == self.enqueue_pos.load(Ordering::Relaxed)
+    }
+
+    pub fn size(&self) -> usize {
+        self.enqueue_pos.load(Ordering::Relaxed).wrapping_sub(self.dequeue_pos.load(Ordering::Relaxed))
+    }
+
     pub fn acquire_as_gc<F, T>(&self, f: F) -> T
     where
         F: FnOnce() -> T,
@@ -215,6 +235,28 @@ pub unsafe extern "C" fn mpmc_queue_pop(q: *mut std::ffi::c_void) -> *mut std::f
     let q = unsafe { q.cast::<MpmcQueue>().as_ref().unwrap() };
     let item = q.pop();
     unsafe { std::mem::transmute(item) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mpmc_queue_peek(q: *mut std::ffi::c_void) -> *mut std::ffi::c_void {
+    let q = unsafe { q.cast::<MpmcQueue>().as_ref().unwrap() };
+    let item = q.peek();
+    if let Some(item) = item {
+        return unsafe { std::mem::transmute(item) };
+    }
+    std::ptr::null_mut()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mpmc_queue_is_empty(q: *mut std::ffi::c_void) -> bool {
+  let q = unsafe { q.cast::<MpmcQueue>().as_ref().unwrap() };
+  q.is_empty()
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mpmc_queue_size(q: *mut std::ffi::c_void) -> usize {
+    let q = unsafe { q.cast::<MpmcQueue>().as_ref().unwrap() };
+    q.size()
 }
 
 pub const MPMC_QUEUE_OBJECT_SIZE: usize = 80;
