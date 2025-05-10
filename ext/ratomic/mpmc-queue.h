@@ -31,8 +31,15 @@ VALUE rb_mpmc_queue_alloc(VALUE klass) {
 
 VALUE rb_mpmc_queue_initialize(VALUE self, VALUE cap) {
   mpmc_queue_t *queue;
+  
+  Check_Type(cap, T_FIXNUM);
+  long capacity = FIX2LONG(cap);
+  if (capacity < 2 || (capacity & (capacity - 1)) != 0) {
+    rb_raise(rb_eArgError, "capacity must be a power of 2 and at least 2");
+  }
+
   TypedData_Get_Struct(self, mpmc_queue_t, &mpmc_queue_data, queue);
-  mpmc_queue_init(queue, FIX2LONG(cap), Qnil);
+  mpmc_queue_init(queue, capacity, Qnil);
   return Qnil;
 }
 

@@ -8,6 +8,28 @@ class TestMpmcQueue < Minitest::Test
     @queue = Ratomic::Queue.new(QUEUE_CAPACITY)
   end
 
+  def test_invalid_queue_capacity
+    assert_raises(TypeError, "should raise for non-integer capacity") do
+      Ratomic::Queue.new("not-an-int")
+    end
+  
+    assert_raises(TypeError, "should raise for float capacity") do
+      Ratomic::Queue.new(8.5)
+    end
+  
+    assert_raises(ArgumentError, "should raise for capacity < 2") do
+      Ratomic::Queue.new(1)
+    end
+  
+    assert_raises(ArgumentError, "should raise for capacity that is not a power of 2") do
+      Ratomic::Queue.new(3)
+    end
+  
+    assert_raises(ArgumentError, "should raise for capacity that is not a power of 2") do
+      Ratomic::Queue.new(100)
+    end
+  end
+
   def test_basic_operations
     assert @queue.empty?, "initial queue should be empty"
     assert_equal 0, @queue.size, "initial size should be 0"

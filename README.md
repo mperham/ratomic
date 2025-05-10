@@ -79,7 +79,7 @@ HASH.clear
 A multi-producer, multi-consumer queue.
 
 ```ruby
-q = Ratomic::Queue.new(128) 
+q = Ratomic::Queue.new(128) # capacity must be a power of 2 and at least 2
 
 q.push("hello")
 q.push("world")
@@ -91,6 +91,7 @@ item = q.pop # => "hello"
 item = q.pop # => "world"
 q.empty?   # => true
 ```
+The `.new(capacity)` method initializes the queue with a fixed-size buffer. The capacity must be a power of 2 and at least 2, which ensures efficient indexing and wrap-around in the underlying buffer
 
 Since `Ratomic::Queue` is a concurrent queue, the `size`, `empty?`, and `peek` methods provide only a best-effort guess — the values they return might be stale or incorrect.
 
