@@ -39,10 +39,7 @@ impl MpmcQueue {
     }
 
     fn init(&mut self, buffer_size: usize, default: c_ulong) {
-        assert!(buffer_size >= 2);
-        assert_eq!(buffer_size & (buffer_size - 1), 0);
-
-        let mut buffer = Vec::with_capacity(buffer_size);
+        let mut buffer = Vec::with_capacity(buffer_size.next_power_of_two());
         for i in 0..buffer_size {
             buffer.push(QueueElement {
                 sequence: AtomicUsize::new(i),
