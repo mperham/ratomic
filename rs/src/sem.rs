@@ -1,72 +1,69 @@
-use std::time::Duration;
-
-use libc::{
-    CLOCK_REALTIME, clock_gettime, sem_destroy, sem_init, sem_post, sem_t, sem_wait,
-};
+use std::sync::{Condvar, Mutex};
 
 pub(crate) struct Semaphore {
-    inner: *mut sem_t,
+    // Wrap the state in a heap-allocated Box so the raw pointer `self.inner` remains stable
+    inner: *mut SemaphoreInner,
+}
+
+struct SemaphoreInner {
+    lock: Mutex<u32>, // the current count of permits
+    cvar: Condvar,
 }
 
 impl Semaphore {
     pub(crate) fn alloc() -> Self {
-        unsafe { std::mem::zeroed() }
+        Self {
+            inner: std::ptr::null_mut(),
+        }
     }
 
     pub(crate) fn init(&mut self, initial: u32) {
-        let ptr = Box::into_raw(Box::new(unsafe { std::mem::zeroed() }));
-
-        let res = unsafe { sem_init(ptr, 0, initial) };
-        if res != 0 {
-            panic!(
-                "failed to create semaphore: {:?}",
-                std::io::Error::last_os_error()
-            )
-        }
-
-        self.inner = ptr;
+        let inner_struct = SemaphoreInner {
+            lock: Mutex::new(initial),
+            cvar: Condvar::new(),
+        };
+        // Box into raw pointer to manage memory life manually
+        self.inner = Box::into_raw(Box::new(inner_struct));
     }
 
     pub(crate) fn post(&self) {
-        let res = unsafe { sem_post(self.inner) };
-        if res != 0 {
-            panic!(
-                "failed to post to semaphore: {:?}",
-                std::io::Error::last_os_error()
-            )
+        if self.inner.is_null() {
+            return;
         }
+        
+        let inner = unsafe { &*self.inner };
+        let mut count = inner.lock.lock().unwrap();
+        *count += 1;
+        
+        // notify to wake up a waiting thread
+        inner.cvar.notify_one();
     }
 
     pub(crate) fn wait(&self) {
-        let res = unsafe { sem_wait(self.inner) };
-        if res != 0 {
-            panic!(
-                "failed to wait for semaphore: {:?}",
-                std::io::Error::last_os_error()
-            )
+        if self.inner.is_null() {
+            return;
         }
-    }
 
-    // pub(crate) fn wait_for(&self, duration: Duration) -> bool {
-    //     let mut abstime = unsafe { std::mem::zeroed() };
-    //     let res = unsafe { clock_gettime(CLOCK_REALTIME, &mut abstime) };
-    //     if res != 0 {
-    //         panic!(
-    //             "failed to call clock_gettime: {:?}",
-    //             std::io::Error::last_os_error()
-    //         );
-    //     }
-    //     abstime.tv_nsec += duration.as_nanos() as i64;
-    //     let res = unsafe { sem_timedwait(self.inner, &abstime) };
-    //     res != -1
-    // }
+        let inner = unsafe { &*self.inner };
+        let mut count = inner.lock.lock().unwrap();
+        
+        // Block the thread while there are no available permits
+        while *count == 0 {
+            count = inner.cvar.wait(count).unwrap();
+        }
+        
+        *count -= 1;
+    }
 }
 
 impl Drop for Semaphore {
     fn drop(&mut self) {
-        unsafe {
-            sem_destroy(self.inner);
-            drop(Box::from_raw(self.inner));
+        if !self.inner.is_null() {
+            unsafe {
+                // Safely reclaim and drop the heap allocated struct
+                let _ = Box::from_raw(self.inner);
+            }
+            self.inner = std::ptr::null_mut();
         }
     }
 }
