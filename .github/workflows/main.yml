@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - trunk
-      - ci/cross-platform-strategy-matrix
   pull_request:
     branches:
       - trunk
