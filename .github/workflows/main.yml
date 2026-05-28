@@ -24,7 +24,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-
+      
+        # dtolnay/rust-toolchain is maintained by David Tolnay (author of serde, syn, anyhow)
+        # and is the de facto standard for Rust in GitHub Actions, used by rust-lang org itself.
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       
