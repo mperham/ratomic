@@ -16,9 +16,20 @@ parking_lot = "0.12.3"
 libc = "0.2.170"
 
 [profile.release]
-panic = "abort"
-lto = true
-codegen-units = 1
+panic = "abort"     # abort on panic instead of unwinding — smaller binary, no unwinding tables
+lto = true          # link-time optimization — strips dead code across crates
+codegen-units = 1   # single codegen unit — better optimization, slower compile
+
+# Added these here just in case one might want to do some benchmarking in the future with these different options
+# opt-level = "z"     # optimize for size, not speed
+# options are:
+# 0  — no optimization (fastest compile, biggest/slowest binary) — default for debug
+# 1  — basic optimization
+# 2  — moderate optimization  
+# 3  — aggressive optimization (fastest binary) — default for release
+# s  — optimize for size (moderate)
+# z  — optimize for size (aggressive) — "z" as in "minimize to zero"
+
 
 [[bin]]
 bench = false
