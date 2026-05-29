@@ -1,0 +1,56 @@
+# -----------------------------------------------------------------------------
+# ratomic local developer experience
+#
+# Simulates the CI matrix locally on Linux across Ruby versions.
+# If macOS is your host machine — run `bundle exec rake` natively there.
+#
+# Usage:
+#   Run all Ruby versions in parallel:
+#     docker compose up --build
+#
+#   Run a specific Ruby version:
+#     docker compose run --build ruby34
+#
+#   Run and exit with the test result code (for scripting dx):
+#     docker compose run ruby34
+#
+#   Tear down:
+#     docker compose down
+# -----------------------------------------------------------------------------
+
+services:
+
+  # ruby 3.4 — current stable (status quo)
+  ruby34:
+    build:
+      context: .
+      args:
+        RUBY_VERSION: "3.4"
+    image: ratomic-test:ruby34
+    volumes:
+      # mount source so edits reflect without rebuild
+      # extension must still be recompiled via rake
+      - .:/app
+      - cargo-cache:/root/.cargo/registry
+      - target-cache:/rs/target
+    command: bundle exec rake
+
+  # --------------------------------------------------------------------------------#
+  # Future versions — uncomment when ready (and most probably delete lines 23-37)   #
+  # ---------------------------------------------------------------------------------#
+  # Ruby 4.0 — target after Ractor API migration (issue #3 roadmap Phase 1)
+  # ruby40:
+  #   build:
+  #     context: .
+  #     args:
+  #       RUBY_VERSION: "4.0"
+  #   image: ratomic-test:ruby40
+  #   volumes:
+  #     - .:/app
+  #     - cargo-cache:/root/.cargo/registry
+  #     - target-cache:/app/ext/ratomic/target
+  #   command: bundle exec rake
+
+volumes:
+  cargo-cache:
+  target-cache:
