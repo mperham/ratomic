@@ -9,3 +9,4 @@
 *.bundle
 rs/target
 lib/ratomic/ratomic.so
+Gemfile.lock
