@@ -45,7 +45,7 @@ void concurrent_hash_map_drop(concurrent_hash_map_t *hashmap);
 
 void concurrent_hash_map_clear(const concurrent_hash_map_t *hashmap);
 
-size_t concurrent_hash_map_size(const concurrent_hash_map_t *hashmap);
+uintptr_t concurrent_hash_map_size(const concurrent_hash_map_t *hashmap);
 
 unsigned long concurrent_hash_map_get(const concurrent_hash_map_t *hashmap,
                                       unsigned long key,
@@ -90,8 +90,8 @@ void *mpmc_queue_pop(void *q);
 
 void *mpmc_queue_peek(void *q);
 
-void *mpmc_queue_is_empty(void *q);
+bool mpmc_queue_is_empty(void *q);
 
-void *mpmc_queue_size(void *q);
+uintptr_t mpmc_queue_size(void *q);
 
 #endif  /* RUST_ATOMICS_H */
