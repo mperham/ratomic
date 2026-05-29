@@ -1,0 +1,6 @@
+[tools]
+ruby = "3.4"
+rust = "stable"
+
+[tasks.bindgen]
+run = "cargo install cbindgen"
