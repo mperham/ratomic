@@ -78,10 +78,24 @@ VALUE rb_mpmc_queue_peek(VALUE self) {
   return item;
 }
 
+
+// Add wrapper to these functions: `mpmc_queue_is_empty` and `mpmc_queue_size`
+static void *mpmc_queue_is_empty_gvl_wrapper(void *data) {
+  // Cast the boolean result to a void* size integer
+  return (void *)(uintptr_t)mpmc_queue_is_empty(data);
+}
+
+static void *mpmc_queue_size_gvl_wrapper(void *data) {
+  // Cast the size_t/uintptr_t result to a void*
+  return (void *)(uintptr_t)mpmc_queue_size(data);
+}
+
 VALUE rb_mpmc_queue_is_empty(VALUE self) {
   mpmc_queue_t *queue;
   TypedData_Get_Struct(self, mpmc_queue_t, &mpmc_queue_data, queue);
-  void *ptr = rb_thread_call_without_gvl(mpmc_queue_is_empty, queue, NULL, NULL);
+
+  void *ptr = rb_thread_call_without_gvl(mpmc_queue_is_empty_gvl_wrapper, queue, NULL, NULL);
+  
   VALUE is_empty = (VALUE)ptr;
   return is_empty ? Qtrue : Qfalse;
 }
@@ -89,7 +103,9 @@ VALUE rb_mpmc_queue_is_empty(VALUE self) {
 VALUE rb_mpmc_queue_size(VALUE self) {
   mpmc_queue_t *queue;
   TypedData_Get_Struct(self, mpmc_queue_t, &mpmc_queue_data, queue);
-  void *ptr = rb_thread_call_without_gvl(mpmc_queue_size, queue, NULL, NULL);
+
+  void *ptr = rb_thread_call_without_gvl(mpmc_queue_size_gvl_wrapper, queue, NULL, NULL);
+
   size_t size = (size_t)ptr;
   return LONG2NUM(size);
 }
