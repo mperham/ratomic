@@ -4,6 +4,7 @@ use std::{
     ffi::c_ulong,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use std::ffi::c_void;
 
 struct QueueElement {
     sequence: AtomicUsize,
@@ -228,10 +229,10 @@ pub unsafe extern "C" fn mpmc_queue_push(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn mpmc_queue_pop(q: *mut std::ffi::c_void) -> *mut std::ffi::c_void {
+pub unsafe extern "C" fn mpmc_queue_pop(q: *mut std::ffi::c_void) -> *mut c_void {
     let q = unsafe { q.cast::<MpmcQueue>().as_ref().unwrap() };
     let item = q.pop();
-    unsafe { std::mem::transmute(item) }
+    std::ptr::with_exposed_provenance_mut::<c_void>(item.try_into().unwrap())
 }
 
 #[unsafe(no_mangle)]
@@ -239,7 +240,7 @@ pub unsafe extern "C" fn mpmc_queue_peek(q: *mut std::ffi::c_void) -> *mut std::
     let q = unsafe { q.cast::<MpmcQueue>().as_ref().unwrap() };
     let item = q.peek();
     if let Some(item) = item {
-        return unsafe { std::mem::transmute(item) };
+        return std::ptr::with_exposed_provenance_mut::<c_void>(item.try_into().unwrap());
     }
     std::ptr::null_mut()
 }
