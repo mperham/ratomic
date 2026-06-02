@@ -13,7 +13,7 @@
 ### Prerequisites
 - [x] Read https://oxidize-rb.org/docs/getting-started through deployment
 - [x] branch from current trunk
-- [ ] Verify `docker compose run ruby34` is green on current trunk
+- [x] Verify `docker compose run ruby34` is green on current trunk
 
 ### PR 1 — RbSys::ExtensionTask
 - [ ] Add `rb_sys` to gemspec dependencies
