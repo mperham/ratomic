@@ -25,8 +25,6 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /app
 
-RUN cargo install cbindgen
-
 # Cache gems separately from source so bundle install
 # only re-runs when Gemfile/gemspec changes
 COPY Gemfile* *.gemspec ./
@@ -38,4 +36,3 @@ COPY . .
 
 # Default: compile the extension and run the full test suite
 CMD ["bundle", "exec", "rake"]
-
