@@ -2,21 +2,89 @@
 
 require "bundler/gem_tasks"
 require "minitest/test_task"
-require "rake/extensiontask"
-require "standard/rake"
+require "rake/clean"
+require "rb_sys/extensiontask"
+
+begin
+  require "rubocop/rake_task"
+  RuboCop::RakeTask.new
+rescue LoadError => e
+  task(:rubocop) { raise e }
+end
 
 GEMSPEC = Gem::Specification.load("ratomic.gemspec")
-Rake::ExtensionTask.new("ratomic", GEMSPEC) do |task|
-  task.lib_dir = "lib/ratomic"
+RUBY_VERSION_REQUIREMENT = "3.4"
+CROSS_PLATFORMS = %w[
+  x86_64-linux
+  aarch64-linux
+  x86_64-darwin
+  arm64-darwin
+  x64-mingw-ucrt
+].freeze
+
+RbSys::ExtensionTask.new("ratomic", GEMSPEC) do |ext|
+  ext.lib_dir = "lib/ratomic"
+  ext.cross_compile = true
+  ext.cross_platform = [ENV.fetch("RUBY_TARGET", nil)].compact
 end
 Minitest::TestTask.create
 
-task :rust do
-  system("make rust") or abort("ERROR: Rust compilation failed")
+task build: :compile
+
+namespace :gem do
+  task :native_current do
+    platform = ENV.fetch("RUBY_TARGET")
+    gem_file = "pkg/#{GEMSPEC.name}-#{GEMSPEC.version}-#{platform}.gem"
+    stage_path = "tmp/#{platform}/stage"
+
+    Rake::Task["native:#{platform}"].invoke
+
+    spec = GEMSPEC.dup
+    spec.platform = Gem::Platform.new(platform)
+    spec.extensions.clear
+    spec.dependencies.reject! { |dependency| dependency.name == "rb_sys" }
+    spec.files = Dir.chdir(stage_path) do
+      Dir[
+        "CHANGELOG.md",
+        "LICENSE.txt",
+        "README.md",
+        "lib/**/*.rb",
+        "lib/ratomic/*.{bundle,dll,so}",
+        "ratomic.gemspec"
+      ]
+    end
+    spec.required_ruby_version = [">= 3.4", "< 3.5.dev"]
+
+    mkdir_p("pkg")
+    rm_f(gem_file)
+    root = Dir.pwd
+    Dir.chdir(stage_path) do
+      built_gem = Gem::Package.build(spec, false, false, File.basename(gem_file))
+      mv(built_gem, File.join(root, gem_file))
+    end
+  end
+
+  desc "Build source and native gems for the supported release platforms"
+  task :native do
+    rm_rf("pkg")
+    Rake::Task["build"].invoke
+
+    CROSS_PLATFORMS.each do |platform|
+      sh(
+        "bundle",
+        "exec",
+        "rb-sys-dock",
+        "--platform",
+        platform,
+        "--ruby-versions",
+        RUBY_VERSION_REQUIREMENT,
+        "--",
+        "sh",
+        "-lc",
+        "bundle install && bundle exec rake gem:native_current"
+      )
+    end
+  end
 end
 
-task :bindgen do
-  system("make bindgen")
-end
-
-task default: %i[clean clobber rust bindgen compile test build]
+task default: %i[clean compile test]
