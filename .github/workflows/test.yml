@@ -21,7 +21,7 @@ jobs:
           - macos-latest
           - windows-latest
         ruby:
-          - "3.4"
+          - "4.0"
 
     steps:
       - uses: actions/checkout@v6

@@ -6,7 +6,7 @@
 # macOS contributors test natively; this image covers the Linux platform.
 # -----------------------------------------------------------------------------
 
-ARG RUBY_VERSION=3.4
+ARG RUBY_VERSION=4.0
 FROM ruby:${RUBY_VERSION}-slim
 
 # Install system dependencies

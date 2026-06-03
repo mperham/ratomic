@@ -1,0 +1,10 @@
+.git
+.ignoreme
+pkg
+target
+tmp
+rs/target
+ext/ratomic/target
+*.gem
+*.bundle
+*.so
