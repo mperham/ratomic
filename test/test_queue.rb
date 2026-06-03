@@ -127,6 +127,8 @@ class TestMpmcQueue < Minitest::Test
       @queue.push(:__TERMINATE__)
     end
 
+    consumers.each(&:take)
+
     assert_equal actual_total_items, results.size, "did not receive the expected number of items"
     assert_equal (0...actual_total_items).to_a, results.sort, "set of popped items does not match the set of pushed items"
 
