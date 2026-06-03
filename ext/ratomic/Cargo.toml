@@ -1,0 +1,22 @@
+[package]
+name = "ratomic"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+simulation = []
+
+[dependencies]
+crossbeam-channel = "0.5.14"
+dashmap = "6.1.0"
+libc = "0.2.170"
+magnus = "0.8.2"
+parking_lot = "0.12.3"
+rb-sys = { version = "0.9.128", features = ["stable-api-compiled-fallback"] }
+
+[build-dependencies]
+rb-sys-env = "0.2.2"
