@@ -11,10 +11,10 @@ class TestHashMap < Minitest::Test
       Ractor.new(iter) do |iter|
         iter.times { |idx| MAP.set(idx, (iter + idx)) }
         iter.times { |idx| MAP[idx] = (iter + idx) }
-        Ractor.yield :done
+        :done
       end
     end
-    assert_equal ractors.map(&:take), [:done] * cpus, "not all workers have finished successfully"
+    assert_equal ractors.map { |ractor| ractor_value(ractor) }, [:done] * cpus, "not all workers have finished successfully"
     1000.times do |idx|
       assert_equal iter+idx, MAP.get(idx)
       assert_equal iter+idx, MAP[idx]
@@ -39,10 +39,10 @@ class TestHashMap < Minitest::Test
     ractors = 1.upto(cpus).map do |i|
       Ractor.new(iter) do |iter|
         iter.times { |idx| MAP[idx] = (iter + idx) }
-        Ractor.yield :done
+        :done
       end
     end
-    ractors.map(&:take)
+    ractors.map { |ractor| ractor_value(ractor) }
 
     assert_equal 100_000, MAP.size
   end

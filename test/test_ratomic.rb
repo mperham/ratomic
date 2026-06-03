@@ -23,10 +23,10 @@ class TestRatomic < Minitest::Test
     ractors = 1.upto(cpus).map do |i|
       Ractor.new(iter, counter) do |iter, counter|
         iter.times { counter.inc }
-        Ractor.yield :done
+        :done
       end
     end
-    assert_equal ractors.map(&:take), [:done] * cpus, "not all workers have finished successfully"
+    assert_equal ractors.map { |ractor| ractor_value(ractor) }, [:done] * cpus, "not all workers have finished successfully"
     assert_equal counter.read, cpus * iter, "race condition"
   end
 end

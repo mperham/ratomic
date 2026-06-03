@@ -56,8 +56,7 @@ class TestMpmcQueue < Minitest::Test
     assert blocker.inspect.include?("blocking"), "should be blocked waiting for pop"
 
     @queue.push(123)
-    result = nil
-    50.times { result = blocker.take rescue nil; break if result; sleep 0.01 }
+    result = poll_ractor_value(blocker)
 
     assert_equal 123, result, "did not receive the pushed item"
   end
@@ -75,8 +74,7 @@ class TestMpmcQueue < Minitest::Test
 
     @queue.pop
 
-    result = nil
-    50.times { result = blocker.take rescue nil; break if result; sleep 0.01 } 
+    result = poll_ractor_value(blocker)
     assert_equal :pushed, result, "did not signal successful push"
 
     remaining_items = []
@@ -100,34 +98,32 @@ class TestMpmcQueue < Minitest::Test
       end
     end
 
+    results_queue = Ratomic::Queue.new(QUEUE_CAPACITY)
     consumers = num_consumers.times.map do
-      Ractor.new(@queue) do |q|
+      Ractor.new(@queue, results_queue) do |q, results|
         loop do
           item = q.pop
           break if item == :__TERMINATE__ 
-          Ractor.yield item
+          results.push(item)
         end
+        :done_consuming
       end
     end
 
     sleep 0.1
 
-    producers.each { |p| assert_equal :done_producing, p.take }
+    producers.each { |producer| assert_equal :done_producing, ractor_value(producer) }
 
     results = []
     actual_total_items.times do |i|
-      _, value = Ractor.select(*consumers)
-      results << value
-    rescue Ractor::ClosedError, Ractor::RemoteError, Ractor::Error => e
-      flunk "consumer Ractor closed unexpectedly: #{e.message}"
-      break
+      results << results_queue.pop
     end
 
     num_consumers.times do
       @queue.push(:__TERMINATE__)
     end
 
-    consumers.each(&:take)
+    consumers.each { |consumer| assert_equal :done_consuming, ractor_value(consumer) }
 
     assert_equal actual_total_items, results.size, "did not receive the expected number of items"
     assert_equal (0...actual_total_items).to_a, results.sort, "set of popped items does not match the set of pushed items"

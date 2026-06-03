@@ -14,11 +14,11 @@ class TestPool < Minitest::Test
           end
         end
 
-        Ractor.yield :done
+        :done
       end
     end
 
-    ractors.map(&:take)
+    ractors.map { |ractor| ractor_value(ractor) }
     POOL_SIZE.times do
       #p POOL.checkout
       POOL.checkout
