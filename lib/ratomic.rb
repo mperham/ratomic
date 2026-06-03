@@ -15,12 +15,14 @@ module Ratomic
     end
 
     def inc(amt = 1)
-      raise ArgumentError, "amount must be positive: #{amt}" if amt < 0
+      raise ArgumentError, "amount must be positive: #{amt}" if amt.negative?
+
       increment(amt)
     end
 
     def dec(amt = 1)
-      raise ArgumentError, "amount must be positive: #{amt}" if amt < 0
+      raise ArgumentError, "amount must be positive: #{amt}" if amt.negative?
+
       decrement(amt)
     end
   end
@@ -39,15 +41,11 @@ module Ratomic
 
     def with
       obj_and_idx = checkout
-      if obj_and_idx.nil?
-        raise Ratomic::Error, "pool checkout timeout"
-      else
-        yield obj_and_idx[0]
-      end
+      raise Ratomic::Error, "pool checkout timeout" if obj_and_idx.nil?
+
+      yield obj_and_idx[0]
     ensure
-      unless obj_and_idx.nil?
-        checkin(obj_and_idx[1])
-      end
+      checkin(obj_and_idx[1]) unless obj_and_idx.nil?
     end
   end
 
@@ -60,9 +58,8 @@ module Ratomic
       get(key)
     end
 
-    # TODO add as much of the Hash API as possible.
+    # TODO: add as much of the Hash API as possible.
     # Stretch goal? Support Enumerable if DashMap can safely
     # iterate.
   end
-
 end
