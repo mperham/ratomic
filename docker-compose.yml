@@ -32,7 +32,7 @@ services:
       # extension must still be recompiled via rake
       - .:/app
       - cargo-cache:/root/.cargo/registry
-      - target-cache:/rs/target
+      - target-cache:/app/target
     command: bundle exec rake
 
   # --------------------------------------------------------------------------------#

@@ -42,17 +42,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install cbindgen via Cargo
-        run: |
-          if ! command -v cbindgen &> /dev/null; then
-            cargo install cbindgen --force
-          fi
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Verify installation
-        run: cbindgen --version
-      
-      - run: cd rs && cargo test --all-features
+      - name: Run Rust tests
+        run: cargo test --workspace
 
       - name: Set up Ruby ${{ matrix.ruby }}
         uses: ruby/setup-ruby@v1
