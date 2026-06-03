@@ -1,0 +1,20 @@
+name: Set up Ruby and Rust
+description: Set up the Ruby and Rust toolchains used by ratomic CI jobs.
+
+inputs:
+  ruby-version:
+    description: Ruby version to install.
+    required: true
+  bundler-cache:
+    description: Enable ruby/setup-ruby bundler cache.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Ruby ${{ inputs.ruby-version }} and Rust
+      uses: oxidize-rb/actions/setup-ruby-and-rust@v1
+      with:
+        ruby-version: ${{ inputs.ruby-version }}
+        bundler-cache: ${{ inputs.bundler-cache }}

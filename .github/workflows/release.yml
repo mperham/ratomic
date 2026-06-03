@@ -1,0 +1,172 @@
+name: Gem Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish gems to RubyGems.org"
+        required: true
+        type: boolean
+        default: false
+      dry-run:
+        description: "Build and verify release artifacts without publishing"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gem-release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        ruby:
+          - "3.4"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby ${{ matrix.ruby }} and Rust
+        uses: ./.github/actions/setup-ruby-rust
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Run Rust tests
+        run: cargo test --workspace
+
+      - name: Run Ruby tests
+        run: bundle exec rake
+
+  package-ruby:
+    name: Package ruby gem
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby and Rust
+        uses: ./.github/actions/setup-ruby-rust
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Verify tag matches gem version
+        if: github.event_name == 'push'
+        run: |
+          ruby -Ilib -rratomic/version -e 'abort("tag #{ENV.fetch("GITHUB_REF_NAME")} does not match gem version #{Ratomic::VERSION}") unless ENV.fetch("GITHUB_REF_NAME") == "v#{Ratomic::VERSION}"'
+
+      - name: Build ruby gem
+        run: bundle exec rake build
+
+      - name: Upload ruby gem
+        uses: actions/upload-artifact@v7
+        with:
+          name: gem-ruby
+          path: pkg/*.gem
+          if-no-files-found: error
+
+  package-native:
+    name: Package ${{ matrix.platform }} gem
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - x86_64-linux
+          - aarch64-linux
+          - x86_64-darwin
+          - arm64-darwin
+          - x64-mingw-ucrt
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Build native gem
+        uses: oxidize-rb/actions/cross-gem@v1
+        with:
+          platform: ${{ matrix.platform }}
+
+      - name: Upload native gem
+        uses: actions/upload-artifact@v7
+        with:
+          name: gem-${{ matrix.platform }}
+          path: pkg/*-${{ matrix.platform }}.gem
+          if-no-files-found: error
+
+  dry-run:
+    name: Dry run release artifacts
+    needs:
+      - package-ruby
+      - package-native
+    if: github.event_name == 'workflow_dispatch' && inputs['dry-run']
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download gem artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: gem-*
+          path: pkg
+          merge-multiple: true
+
+      - name: Show gems for dry run
+        run: find pkg -name "*.gem" -print | sort
+
+  publish:
+    name: Publish gems to RubyGems.org
+    needs:
+      - package-ruby
+      - package-native
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish && !inputs['dry-run'])
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment: release
+
+    steps:
+      - name: Download gem artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: gem-*
+          path: pkg
+          merge-multiple: true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+
+      - name: Configure RubyGems credentials
+        uses: rubygems/configure-rubygems-credentials@v2
+
+      - name: Publish gems
+        run: |
+          find pkg -name "*.gem" -print | sort
+          find pkg -name "*.gem" -print | sort | while read -r gem_file; do
+            gem push "${gem_file}"
+          done
