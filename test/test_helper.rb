@@ -1,6 +1,18 @@
 # frozen_string_literal: true
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+require "simplecov"
+
+SimpleCov.start do
+  add_filter "/test/"
+  add_filter "/tmp/"
+
+  enable_coverage :branch
+
+  add_group "Public API", "lib/ratomic"
+end
+
 require "ratomic"
 
 require "minitest/autorun"
