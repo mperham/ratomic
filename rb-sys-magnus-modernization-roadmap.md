@@ -13,52 +13,52 @@
 ### Prerequisites
 - [x] Read https://oxidize-rb.org/docs/getting-started through deployment
 - [x] branch from current trunk
-- [x] Verify `docker compose run ruby34` is green on current trunk
+- [x] Verify `docker compose run ruby34` is green on current trunk before dropping Ruby 3.x
 
 ### PR 1 — RbSys::ExtensionTask
-- [ ] Add `rb_sys` to gemspec dependencies
-- [ ] Replace `Rake::ExtensionTask` with `RbSys::ExtensionTask` in Rakefile
-- [ ] Add `cross_compile = true` and `cross_platform` list
-- [ ] CI green
+- [x] Add `rb_sys` to gemspec dependencies
+- [x] Replace `Rake::ExtensionTask` with `RbSys::ExtensionTask` in Rakefile
+- [x] Add `cross_compile = true` and `cross_platform` list
+- [x] CI green
 
 ### PR 2 — rb_sys/mkmf
-- [ ] Replace `extconf.rb` content with `require "rb_sys/mkmf"` + `create_rust_makefile`
-- [ ] Verify `bundle exec rake compile` still works
-- [ ] CI green
+- [x] Replace `extconf.rb` content with `require "rb_sys/mkmf"` + `create_rust_makefile`
+- [x] Verify `bundle exec rake compile` still works
+- [x] CI green
 
 ### PR 3 — magnus + cdylib (the big one)
-- [ ] Create root `Cargo.toml` workspace
-- [ ] Move Rust source from `rs/src/` → `ext/ratomic/src/`
-- [ ] Update `ext/ratomic/Cargo.toml` — `crate-type = ["cdylib"]`
-- [ ] Add `magnus` dependency
-- [ ] Rewrite each module (counter, hashmap, mpmc_queue, pool) using magnus
-- [ ] Write `ext/ratomic/src/lib.rs` with `#[magnus::init]`
-- [ ] Delete `ext/ratomic/ratomic.c`
-- [ ] Delete `rs/rust-atomics.h`
-- [ ] Delete `Makefile` bindgen target
-- [ ] Remove `cbindgen` from `Dockerfile` and Rakefile
-- [ ] Update Rakefile default task — remove `rust`, `bindgen` steps
-- [ ] All 12 Ruby tests green
-- [ ] All Rust unit tests green
-- [ ] Docker build green
+- [x] Create root `Cargo.toml` workspace
+- [x] Move Rust source from `rs/src/` → `ext/ratomic/src/`
+- [x] Update `ext/ratomic/Cargo.toml` — `crate-type = ["cdylib"]`
+- [x] Add `magnus` dependency
+- [x] Rewrite each module (counter, hashmap, mpmc_queue, pool) using magnus
+- [x] Write `ext/ratomic/src/lib.rs` with `#[magnus::init]`
+- [x] Delete `ext/ratomic/ratomic.c`
+- [x] Delete `rs/rust-atomics.h`
+- [x] Delete `Makefile` bindgen target
+- [x] Remove `cbindgen` from `Dockerfile` and Rakefile
+- [x] Update Rakefile default task — remove `rust`, `bindgen` steps
+- [x] All 12 Ruby tests green
+- [x] All Rust unit tests green
+- [x] Docker build green
 
 ### PR 4 — Release workflow
-- [ ] Add `.github/actions/setup-rust-ruby/action.yml`
-- [ ] Update `main.yml` to use composite action
-- [ ] Add `release.yml` with full pipeline
+- [x] Add `.github/actions/setup-ruby-rust/action.yml`
+- [x] Update `test.yml` to use composite action
+- [x] Add `release.yml` with full pipeline
 - [ ] Configure Trusted Publisher on RubyGems.org (owner: mperham, repo: ratomic, workflow: release.yml, environment: release)
 - [ ] Dry-run the workflow via `workflow_dispatch` — verify gem list correct
 - [ ] Publish v0.2.0
 
 ### PR 5 — Ruby 4 migration
-- [ ] CI ruby matrix in `main.yml` set to `["4.0"]` only — drops Ruby 3.x per alignment with Mike
-- [ ] Bump `required_ruby_version` to `>= "4.0.0"` in gemspec
-- [ ] Update `.standard.yml` `ruby_version: 4.0`
-- [ ] Rewrite `Pool` checkout/checkin using `Ractor::Port`
-- [ ] Replace `Ractor.yield` / `Ractor#take` in test suite
-- [ ] Replace `Ractor#close_incoming` / `close_outgoing` throughout
-- [ ] Add `Ractor#join` / `Ractor#value` where termination is awaited
-- [ ] All tests green on Ruby 4.0
+- [x] CI ruby matrix in `test.yml` set to `["4.0"]` only — drops Ruby 3.x per alignment with Mike
+- [x] Bump `required_ruby_version` to `>= "4.0.0"` in gemspec
+- [x] Update RuboCop `TargetRubyVersion: 4.0`
+- [x] Rewrite `Pool` checkout/checkin using `Ractor::Port`
+- [x] Replace `Ractor.yield` / `Ractor#take` in test suite
+- [x] Replace `Ractor#close_incoming` / `close_outgoing` throughout
+- [x] Add `Ractor#join` / `Ractor#value` where termination is awaited
+- [x] All tests green on Ruby 4.0
 ---
 
 ## Notes

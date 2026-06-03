@@ -39,6 +39,13 @@ Note the APIs available are frequently very limited compared to Ruby's broad API
 
 These structures are designed for use as class-level constants so they can be shared by numerous Ractors.
 
+Ratomic has two different safety models:
+
+* `Counter`, `Map`, and `Queue` are shared concurrent structures.
+* `Pool` transfers ownership of mutable objects between Ractors.
+
+That distinction matters. A mutable pooled object is not shared by multiple Ractors at the same time. It is moved to the caller on checkout and moved back to the pool on checkin.
+
 ### `Ratomic::Counter`
 
 ```ruby
@@ -56,11 +63,66 @@ c.read # => 4
 A Ractor-safe object pool:
 
 ```ruby
-POOL = Ratomic::Pool.new(5, 1.0) { Object.new }
+POOL = Ratomic::Pool.new(5, 1.0) { [] }
 POOL.with do |obj|
   # do something with obj
+  obj << "work"
 end
 ```
+
+`Pool` is an ownership-transfer pool for mutable Ruby objects. It uses Ruby 4's `Ractor::Port` and `move: true` semantics so only one Ractor owns a checked-out object at a time.
+
+This design addresses [issue #5](https://github.com/mperham/ratomic/issues/5), where using a pooled object after `with` could lead to memory corruption or a process crash. The fix is Rust-inspired ownership transfer, not Rust's full borrow checker: Ruby enforces the boundary dynamically at runtime through Ractor move semantics, while Rust enforces ownership and borrowing statically at compile time.
+
+In that model:
+
+* the Rust owner maps to the Ractor that currently checked out the pooled object
+* the Rust move maps to `Ractor::Port#send(..., move: true)`
+* Rust's "cannot use after move" rule maps to Ruby raising `Ractor::MovedError`
+* borrowing is not modeled; `Pool` transfers ownership instead of lending references
+
+When an object is checked out:
+
+* the pool moves the object to the caller
+* the caller can mutate the object while it owns it
+* the pool cannot hand that object to another Ractor until it is checked in
+
+When an object is checked in:
+
+* ownership moves back to the pool
+* stale references held by the caller become moved objects
+* using those stale references raises `Ractor::MovedError`
+
+This means incorrect usage fails at the Ruby object-ownership boundary rather than allowing two Ractors to mutate the same object concurrently.
+
+```ruby
+outside = nil
+
+POOL.with do |obj|
+  outside = obj
+  obj << "inside"
+end
+
+outside << "outside"
+# raises Ractor::MovedError
+```
+
+The lower-level `Ratomic::FixedSizeObjectPool` native class may still exist, but `Ratomic::Pool` does not inherit from it. The public `Pool` API is implemented in Ruby so it can use Ruby's Ractor ownership primitives directly.
+
+Manual checkout/checkin is also supported:
+
+```ruby
+obj = POOL.checkout
+raise "pool checkout timeout" if obj.nil?
+
+begin
+  obj << "manual work"
+ensure
+  POOL.checkin(obj) if obj
+end
+```
+
+`checkout` returns `nil` if no pooled object becomes available before the configured timeout. `with` raises `Ratomic::Error` in that case.
 
 ### `Ratomic::Map`
 

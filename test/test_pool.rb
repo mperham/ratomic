@@ -20,10 +20,10 @@ class TestPool < Minitest::Test
 
     ractors.map { |ractor| ractor_value(ractor) }
     POOL_SIZE.times do
-      #p POOL.checkout
       POOL.checkout
     end
     # 100ms timeout
     refute POOL.checkout
   end
+
 end
