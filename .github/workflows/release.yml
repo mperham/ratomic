@@ -115,8 +115,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: gem-${{ matrix.platform }}
-          path: pkg/*-${{ matrix.platform }}.gem
+          path: pkg/*.gem
           if-no-files-found: error
+
 
   dry-run:
     name: Dry run release artifacts
@@ -130,8 +131,7 @@ jobs:
       - name: Download gem artifacts
         uses: actions/download-artifact@v7
         with:
-          pattern: gem-*
-          path: pkg
+          path: pkg/
           merge-multiple: true
 
       - name: Show gems for dry run
@@ -153,14 +153,8 @@ jobs:
       - name: Download gem artifacts
         uses: actions/download-artifact@v7
         with:
-          pattern: gem-*
-          path: pkg
+          path: pkg/
           merge-multiple: true
-
-      - name: Show gems
-        run: find pkg -name "*.gem" -print | sort
 
       - name: Publish gems to RubyGems.org
         uses: rubygems/release-gem@v1
-        with:
-          glob: pkg/*.gem
