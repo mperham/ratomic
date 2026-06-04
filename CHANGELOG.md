@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-04
+
+- Fix `Ratomic::Queue` slot indexing for non-power-of-two capacities.
+- Fix `Ratomic::Map#fetch_and_modify` to propagate block exceptions instead of panicking.
+
 ## [0.2.0] - 2026-06-04
 
 - Drop Ruby 3.x support and require Ruby 4.
