@@ -10,6 +10,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 45
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
@@ -36,4 +37,5 @@ jobs:
         run: cargo test --workspace
 
       - name: Compile extension and run the default task
+        timeout-minutes: 30
         run: bundle exec rake
