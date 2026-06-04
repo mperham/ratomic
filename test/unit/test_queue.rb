@@ -26,6 +26,23 @@ class QueueUnitTest < Minitest::Test
     assert_predicate queue, :empty?
   end
 
+  def test_non_power_of_two_capacity_preserves_fifo_order
+    queue = Ratomic::Queue.new(3)
+
+    queue.push(:first)
+    queue.push(:second)
+    queue.push(:third)
+
+    assert_equal :first, queue.pop
+
+    queue.push(:fourth)
+
+    assert_equal :second, queue.pop
+    assert_equal :third, queue.pop
+    assert_equal :fourth, queue.pop
+    assert_predicate queue, :empty?
+  end
+
   def test_rejects_invalid_capacity
     assert_raises(TypeError) { Ratomic::Queue.new("4") }
     assert_raises(TypeError) { Ratomic::Queue.new(4.0) }

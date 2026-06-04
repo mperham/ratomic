@@ -15,7 +15,7 @@ unsafe impl Sync for QueueElement {}
 
 pub struct MpmcQueue {
     buffer: Vec<QueueElement>,
-    buffer_mask: usize,
+    buffer_size: usize,
     enqueue_pos: AtomicUsize,
     dequeue_pos: AtomicUsize,
     gc_guard: GcGuard,
@@ -25,7 +25,7 @@ pub struct MpmcQueue {
 
 impl MpmcQueue {
     pub fn new(buffer_size: usize, default: VALUE) -> Self {
-        let mut buffer = Vec::with_capacity(buffer_size.next_power_of_two());
+        let mut buffer = Vec::with_capacity(buffer_size);
         for i in 0..buffer_size {
             buffer.push(QueueElement {
                 sequence: AtomicUsize::new(i),
@@ -42,7 +42,7 @@ impl MpmcQueue {
 
         Self {
             buffer,
-            buffer_mask: buffer_size - 1,
+            buffer_size,
             enqueue_pos: AtomicUsize::new(0),
             dequeue_pos: AtomicUsize::new(0),
             gc_guard,
@@ -55,7 +55,7 @@ impl MpmcQueue {
         let mut cell;
         let mut pos = self.enqueue_pos.load(Ordering::Relaxed);
         loop {
-            cell = &self.buffer[pos & self.buffer_mask];
+            cell = &self.buffer[pos % self.buffer_size];
             let seq = cell.sequence.load(Ordering::Acquire);
             let diff = seq as isize - pos as isize;
             if diff == 0 {
@@ -82,7 +82,7 @@ impl MpmcQueue {
         let mut cell;
         let mut pos = self.dequeue_pos.load(Ordering::Relaxed);
         loop {
-            cell = &self.buffer[pos & self.buffer_mask];
+            cell = &self.buffer[pos % self.buffer_size];
             let seq = cell.sequence.load(Ordering::Acquire);
             let diff = seq as isize - (pos + 1) as isize;
             if diff == 0 {
@@ -102,7 +102,7 @@ impl MpmcQueue {
 
         let data = cell.data.get();
         cell.sequence
-            .store(pos + self.buffer_mask + 1, Ordering::Release);
+            .store(pos + self.buffer_size, Ordering::Release);
         self.write_sem.post();
 
         #[cfg(feature = "simulation")]
@@ -131,7 +131,7 @@ impl MpmcQueue {
 
     pub fn peek(&self) -> Option<VALUE> {
         let pos = self.dequeue_pos.load(Ordering::Relaxed);
-        let cell = &self.buffer[pos & self.buffer_mask];
+        let cell = &self.buffer[pos % self.buffer_size];
         let seq = cell.sequence.load(Ordering::Acquire);
         let diff = seq as isize - (pos + 1) as isize;
         if diff == 0 {
