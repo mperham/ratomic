@@ -169,7 +169,7 @@ jobs:
 
       # Authenticate with RubyGems via Trusted Publishing (OIDC)
       - name: Configure RubyGems Credentials
-        uses: rubygems/configure-rubygems-credentials@v0
+        uses: rubygems/configure-rubygems-credentials@v2.0.0
 
       # Push all variants (Ruby + Native Platform gems)
       - name: Publish all gems to RubyGems.org
