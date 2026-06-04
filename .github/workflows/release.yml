@@ -157,17 +157,10 @@ jobs:
           path: pkg
           merge-multiple: true
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Show gems
+        run: find pkg -name "*.gem" -print | sort
+
+      - name: Publish gems to RubyGems.org
+        uses: rubygems/release-gem@v1
         with:
-          ruby-version: "4.0"
-
-      - name: Configure RubyGems credentials
-        uses: rubygems/configure-rubygems-credentials@v2
-
-      - name: Publish gems
-        run: |
-          find pkg -name "*.gem" -print | sort
-          find pkg -name "*.gem" -print | sort | while read -r gem_file; do
-            gem push "${gem_file}"
-          done
+          glob: pkg/*.gem
