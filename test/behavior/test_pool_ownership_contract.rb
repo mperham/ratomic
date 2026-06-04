@@ -15,6 +15,8 @@ class PoolOwnershipContractTest < Minitest::Test
     assert_raises(Ractor::MovedError) do
       outside << :outside
     end
+  ensure
+    pool&.close
   end
 
   def test_checked_in_object_is_moved_from_caller_after_manual_checkin
@@ -26,6 +28,8 @@ class PoolOwnershipContractTest < Minitest::Test
     assert_raises(Ractor::MovedError) do
       object << :outside
     end
+  ensure
+    pool&.close
   end
 
   def test_pool_can_transfer_mutable_objects_between_ractors
@@ -49,5 +53,6 @@ class PoolOwnershipContractTest < Minitest::Test
     assert_equal (0...4).to_a, flattened_entries.map(&:first).uniq.sort
   ensure
     pooled_objects&.each { |object| pool.checkin(object) }
+    pool&.close
   end
 end
