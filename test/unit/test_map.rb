@@ -44,6 +44,18 @@ class MapUnitTest < Minitest::Test
     assert_raises(LocalJumpError) { map.fetch_and_modify(:processed) }
   end
 
+  def test_fetch_and_modify_propagates_block_exception
+    map = Ratomic::Map.new
+    map[:processed] = 1
+
+    error = assert_raises(RuntimeError) do
+      map.fetch_and_modify(:processed) { raise "boom" }
+    end
+
+    assert_equal "boom", error.message
+    assert_equal 1, map[:processed]
+  end
+
   def test_map_is_shareable
     map = Ratomic::Map.new
     map[:events] = 0

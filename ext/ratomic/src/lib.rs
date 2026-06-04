@@ -115,11 +115,22 @@ impl HashMap {
         }
 
         let proc = ruby.block_proc()?;
+        let mut error = None;
         rb_self.0.fetch_and_modify(value_to_raw(key), |value| {
-            let result: Value = proc.call((unsafe { value_from_raw(value) },)).unwrap();
-            value_to_raw(result)
+            match proc.call::<_, Value>((unsafe { value_from_raw(value) },)) {
+                Ok(result) => value_to_raw(result),
+                Err(err) => {
+                    error = Some(err);
+                    value
+                }
+            }
         });
-        Ok(())
+
+        if let Some(err) = error {
+            Err(err)
+        } else {
+            Ok(())
+        }
     }
 }
 
