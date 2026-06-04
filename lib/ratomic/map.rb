@@ -94,6 +94,23 @@ module Ratomic
   #   @return [Object] the newly stored value
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
+  #
+  # @!method fetch_or_store(key)
+  #   Return the existing value for +key+, or atomically store the block result.
+  #
+  #   If +key+ exists, returns the current value and does not yield. If +key+
+  #   is missing, yields once, stores the block return value, and returns it.
+  #
+  #   The operation is atomic for the key. Under contention, only one stored
+  #   value wins for a missing key. The block may run while the map entry is
+  #   locked, so avoid calling back into the same map from inside the block.
+  #
+  #   If the block raises, no entry is inserted.
+  #
+  #   @param key [Object]
+  #   @return [Object] the existing or newly stored value
+  #   @raise [LocalJumpError] if no block is given
+  #   @raise [Exception] any exception raised by the block
   class Map
     # Set a value for +key+.
     #

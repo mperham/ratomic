@@ -194,6 +194,52 @@ class MapUnitTest < Minitest::Test
     refute map.key?(:processed)
   end
 
+  def test_fetch_or_store_returns_existing_value_without_yielding
+    map = Ratomic::Map.new
+    map[:source] = "postgres"
+
+    result = map.fetch_or_store(:source) { flunk "should not yield for existing key" }
+
+    assert_equal "postgres", result
+    assert_equal "postgres", map[:source]
+  end
+
+  def test_fetch_or_store_stores_and_returns_block_value_for_missing_key
+    map = Ratomic::Map.new
+
+    result = map.fetch_or_store(:source) { "postgres" }
+
+    assert_equal "postgres", result
+    assert_equal "postgres", map[:source]
+  end
+
+  def test_fetch_or_store_treats_stored_nil_as_existing_value
+    map = Ratomic::Map.new
+    map[:source] = nil
+
+    result = map.fetch_or_store(:source) { flunk "should not yield for stored nil" }
+
+    assert_nil result
+    assert map.key?(:source)
+  end
+
+  def test_fetch_or_store_requires_a_block
+    map = Ratomic::Map.new
+
+    assert_raises(LocalJumpError) { map.fetch_or_store(:source) }
+  end
+
+  def test_fetch_or_store_does_not_insert_missing_key_when_block_raises
+    map = Ratomic::Map.new
+
+    error = assert_raises(RuntimeError) do
+      map.fetch_or_store(:source) { raise "boom" }
+    end
+
+    assert_equal "boom", error.message
+    refute map.key?(:source)
+  end
+
   def test_map_is_shareable
     map = Ratomic::Map.new
     map[:events] = 0
@@ -222,5 +268,24 @@ class MapUnitTest < Minitest::Test
 
     assert_equal [:done] * workers.length, workers.map { |worker| ractor_value(worker) }
     assert_equal 100, map[:events]
+  end
+
+  def test_fetch_or_store_initializes_once_across_ractors
+    map = Ratomic::Map.new
+    initializer_count = Ratomic::Counter.new
+
+    workers = 4.times.map do |worker_id|
+      Ractor.new(map, initializer_count, worker_id) do |ractor_map, counter, id|
+        ractor_map.fetch_or_store(:source) do
+          counter.inc
+          "source-#{id}"
+        end
+      end
+    end
+
+    results = workers.map { |worker| ractor_value(worker) }
+
+    assert_equal 1, initializer_count.read
+    assert_equal [map[:source]], results.uniq
   end
 end

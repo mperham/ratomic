@@ -65,7 +65,7 @@ This phase is the on-ramp: boring by design, necessary before the fast stuff.
 These methods are where DashMap matters most. They should be prioritized over
 large Hash compatibility.
 
-- [ ] `fetch_or_store(key) { ... }`
+- [x] `fetch_or_store(key) { ... }`
 - [x] `compute(key) { |old_value| ... }`
 - [ ] `upsert(key, initial) { |old_value| ... }`
 

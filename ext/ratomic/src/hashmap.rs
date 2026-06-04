@@ -79,6 +79,20 @@ impl MapStore {
         }
     }
 
+    pub fn fetch_or_store<F, E>(&self, key: VALUE, f: F) -> Result<VALUE, E>
+    where
+        F: FnOnce() -> Result<VALUE, E>,
+    {
+        match self.map.entry(RubyHashEql(key)) {
+            Entry::Occupied(entry) => Ok(*entry.get()),
+            Entry::Vacant(entry) => {
+                let value = f()?;
+                entry.insert(value);
+                Ok(value)
+            }
+        }
+    }
+
     pub fn mark<F>(&self, f: F)
     where
         F: Fn(VALUE),
