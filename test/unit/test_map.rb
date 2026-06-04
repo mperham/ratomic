@@ -68,6 +68,46 @@ class MapUnitTest < Minitest::Test
     refute map.key?(:source)
   end
 
+  def test_fetch_returns_existing_value
+    map = Ratomic::Map.new
+    map[:source] = "postgres"
+
+    assert_equal "postgres", map.fetch(:source)
+  end
+
+  def test_fetch_returns_stored_nil_value
+    map = Ratomic::Map.new
+    map[:source] = nil
+
+    assert_nil map.fetch(:source)
+  end
+
+  def test_fetch_returns_default_for_missing_key
+    map = Ratomic::Map.new
+
+    assert_equal "fallback", map.fetch(:missing, "fallback")
+  end
+
+  def test_fetch_yields_missing_key
+    map = Ratomic::Map.new
+
+    assert_equal "fallback for missing", map.fetch(:missing) { |key| "fallback for #{key}" }
+  end
+
+  def test_fetch_block_takes_precedence_over_default
+    map = Ratomic::Map.new
+
+    assert_equal "block fallback", map.fetch(:missing, "default fallback") { "block fallback" }
+  end
+
+  def test_fetch_raises_key_error_for_missing_key_without_default
+    map = Ratomic::Map.new
+
+    error = assert_raises(KeyError) { map.fetch(:missing) }
+
+    assert_equal "key not found: :missing", error.message
+  end
+
   def test_fetch_and_modify_updates_existing_value
     map = Ratomic::Map.new
     map[:processed] = 1

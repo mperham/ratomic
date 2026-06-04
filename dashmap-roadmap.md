@@ -45,7 +45,7 @@ DashMap internals.
 - [x] `include?(key)`
 - [x] `member?(key)`
 - [x] `delete(key)`
-- [ ] `fetch(key, default = Ratomic::Undefined) { ... }`
+- [x] `fetch(key, default = Ratomic::Undefined) { ... }`
 
 ### Notes
 

@@ -141,6 +141,7 @@ HASH = Ratomic::Map.new
 HASH["mike"] = 123
 HASH["mike"] # => 123
 HASH.key?("mike") # => true
+HASH.fetch("missing", 0) # => 0
 HASH.fetch_and_modify("mike") { |value| value + 1 }
 HASH.delete("mike") # => 124
 HASH.length
