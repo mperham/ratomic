@@ -5,8 +5,9 @@ require_relative "lib/ratomic/version"
 Gem::Specification.new do |spec|
   spec.name = "ratomic"
   spec.version = Ratomic::VERSION
-  spec.authors = ["Mike Perham"]
+  spec.authors = ["Mike Perham", "Ken C. Demanawa"]
   spec.email = ["mike@perham.net"]
+  spec.metadata["maintainers"] = "Ken C. Demanawa"
 
   spec.summary = "Mutable data structures for Ractors"
   spec.description = spec.summary
