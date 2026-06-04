@@ -176,6 +176,25 @@ impl HashMap {
 
         Ok(unsafe { value_from_raw(raw) }.into_value_with(ruby))
     }
+
+    fn upsert(ruby: &Ruby, rb_self: &Self, key: Value, initial: Value) -> Result<Value, Error> {
+        if !ruby.block_given() {
+            return Err(Error::new(
+                ruby.exception_local_jump_error(),
+                "no block given",
+            ));
+        }
+
+        let proc = ruby.block_proc()?;
+        let raw = rb_self
+            .0
+            .upsert(value_to_raw(key), value_to_raw(initial), |value| {
+                proc.call::<_, Value>((unsafe { value_from_raw(value) },))
+                    .map(value_to_raw)
+            })?;
+
+        Ok(unsafe { value_from_raw(raw) }.into_value_with(ruby))
+    }
 }
 
 impl DataTypeFunctions for HashMap {
@@ -450,6 +469,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     hashmap.define_method("fetch_and_modify", method!(HashMap::fetch_and_modify, 1))?;
     hashmap.define_method("compute", method!(HashMap::compute, 1))?;
     hashmap.define_method("fetch_or_store", method!(HashMap::fetch_or_store, 1))?;
+    hashmap.define_method("upsert", method!(HashMap::upsert, 2))?;
 
     let queue = root.define_class("Queue", ruby.class_object())?;
     queue.undef_default_alloc_func();

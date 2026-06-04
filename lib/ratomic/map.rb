@@ -111,6 +111,25 @@ module Ratomic
   #   @return [Object] the existing or newly stored value
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
+  #
+  # @!method upsert(key, initial)
+  #   Atomically insert +initial+ for a missing key, or update an existing value.
+  #
+  #   If +key+ is missing, stores and returns +initial+ without yielding. If
+  #   +key+ exists, yields the current value, stores the block return value, and
+  #   returns it.
+  #
+  #   The operation is atomic for the key. The block may run while the map entry
+  #   is locked, so avoid calling back into the same map from inside the block.
+  #
+  #   If the block raises, the previous value is preserved.
+  #
+  #   @param key [Object]
+  #   @param initial [Object]
+  #   @yieldparam value [Object, nil] current value
+  #   @return [Object] the inserted or newly stored value
+  #   @raise [LocalJumpError] if no block is given
+  #   @raise [Exception] any exception raised by the block
   class Map
     # Set a value for +key+.
     #

@@ -240,6 +240,53 @@ class MapUnitTest < Minitest::Test
     refute map.key?(:source)
   end
 
+  def test_upsert_inserts_initial_value_for_missing_key_without_yielding
+    map = Ratomic::Map.new
+
+    result = map.upsert(:processed, 1) { flunk "should not yield for missing key" }
+
+    assert_equal 1, result
+    assert_equal 1, map[:processed]
+  end
+
+  def test_upsert_updates_existing_value_and_returns_new_value
+    map = Ratomic::Map.new
+    map[:processed] = 1
+
+    result = map.upsert(:processed, 1) { |value| value + 41 }
+
+    assert_equal 42, result
+    assert_equal 42, map[:processed]
+  end
+
+  def test_upsert_yields_stored_nil_value
+    map = Ratomic::Map.new
+    map[:processed] = nil
+
+    result = map.upsert(:processed, 1) { |value| value.nil? ? 2 : 0 }
+
+    assert_equal 2, result
+    assert_equal 2, map[:processed]
+  end
+
+  def test_upsert_requires_a_block
+    map = Ratomic::Map.new
+
+    assert_raises(LocalJumpError) { map.upsert(:processed, 1) }
+  end
+
+  def test_upsert_preserves_existing_value_when_block_raises
+    map = Ratomic::Map.new
+    map[:processed] = 1
+
+    error = assert_raises(RuntimeError) do
+      map.upsert(:processed, 1) { raise "boom" }
+    end
+
+    assert_equal "boom", error.message
+    assert_equal 1, map[:processed]
+  end
+
   def test_map_is_shareable
     map = Ratomic::Map.new
     map[:events] = 0
@@ -287,5 +334,21 @@ class MapUnitTest < Minitest::Test
 
     assert_equal 1, initializer_count.read
     assert_equal [map[:source]], results.uniq
+  end
+
+  def test_upsert_updates_atomically_across_ractors
+    map = Ratomic::Map.new
+
+    workers = 4.times.map do
+      Ractor.new(map) do |ractor_map|
+        25.times do
+          ractor_map.upsert(:events, 1) { |value| value + 1 }
+        end
+        :done
+      end
+    end
+
+    assert_equal [:done] * workers.length, workers.map { |worker| ractor_value(worker) }
+    assert_equal 100, map[:events]
   end
 end

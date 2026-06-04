@@ -144,8 +144,9 @@ HASH.key?("mike") # => true
 HASH.fetch("missing", 0) # => 0
 HASH.fetch_or_store("count") { 0 } # => 0
 HASH.compute("mike") { |value| value + 1 } # => 124
+HASH.upsert("mike", 1) { |value| value + 1 } # => 125
 HASH.fetch_and_modify("mike") { |value| value + 1 }
-HASH.delete("mike") # => 125
+HASH.delete("mike") # => 126
 HASH.length
 HASH.empty?
 HASH.clear

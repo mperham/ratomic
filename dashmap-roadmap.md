@@ -67,7 +67,7 @@ large Hash compatibility.
 
 - [x] `fetch_or_store(key) { ... }`
 - [x] `compute(key) { |old_value| ... }`
-- [ ] `upsert(key, initial) { |old_value| ... }`
+- [x] `upsert(key, initial) { |old_value| ... }`
 
 ### `fetch_or_store`
 

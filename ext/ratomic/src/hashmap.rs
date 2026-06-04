@@ -93,6 +93,23 @@ impl MapStore {
         }
     }
 
+    pub fn upsert<F, E>(&self, key: VALUE, initial: VALUE, f: F) -> Result<VALUE, E>
+    where
+        F: FnOnce(VALUE) -> Result<VALUE, E>,
+    {
+        match self.map.entry(RubyHashEql(key)) {
+            Entry::Occupied(mut entry) => {
+                let new_value = f(*entry.get())?;
+                entry.insert(new_value);
+                Ok(new_value)
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(initial);
+                Ok(initial)
+            }
+        }
+    }
+
     pub fn mark<F>(&self, f: F)
     where
         F: Fn(VALUE),
