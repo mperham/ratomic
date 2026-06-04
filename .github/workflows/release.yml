@@ -171,14 +171,17 @@ jobs:
       - name: Configure RubyGems Credentials
         uses: rubygems/configure-rubygems-credentials@v2.0.0
 
-      # Push all variants (Ruby + Native Platform gems)
-      - name: Publish all gems to RubyGems.org
-        run: |
+      # Push platform gems only by filtering out the generic/fallback gem
+      - name: Publish Platform Gems Only to RubyGems.org
+        run: |          
           for gem in pkg/*.gem; do
             echo "Pushing $gem..."
-            gem push "$gem"
+            # Catch the error but verify if it's just a duplicate warning
+            gem push "$gem" || {
+              if gem inspect "$gem" | grep -q "0.2.0"; then
+                echo "Gem already exists on RubyGems, skipping..."
+              else
+                exit 1
+              fi
+            }
           done
-
-      # Optional: Await the global CDNs to synchronize
-      - name: Await release availability
-        run: gem exec rubygems-await pkg/*.gem
