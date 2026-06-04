@@ -1,5 +1,12 @@
 # Ratomic
 
+[![Gem Version](https://badge.fury.io/rb/ratomic.svg)](https://badge.fury.io/rb/ratomic)
+[![CI](https://github.com/mperham/ratomic/workflows/CI/badge.svg)](https://github.com/mperham/ratomic/actions)
+[![Coverage Status](https://codecov.io/gh/mperham/ratomic/branch/main/graph/badge.svg)](https://codecov.io/gh/mperham/ratomic)
+[![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%204.0-ruby.svg)](https://www.ruby-lang.org/en/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 Ratomic provides mutable data structures for use with Ruby's Ractors.
 This allows Ruby code to scale beyond the infamous GVL.
 
@@ -30,8 +37,6 @@ Install the gem and add to the application's Gemfile by executing:
 ```bash
 bundle add ratomic
 ```
-
-TODO: We have not released a gem yet.
 
 ## Usage
 

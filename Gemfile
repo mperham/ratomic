@@ -11,3 +11,4 @@ gem "rake-compiler"
 gem "rb_sys", "~> 0.9.128"
 gem "rubocop", require: false
 gem "simplecov", require: false
+gem "pry", "~> 0.16.0"
