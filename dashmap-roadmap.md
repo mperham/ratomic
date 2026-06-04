@@ -66,7 +66,7 @@ These methods are where DashMap matters most. They should be prioritized over
 large Hash compatibility.
 
 - [ ] `fetch_or_store(key) { ... }`
-- [ ] `compute(key) { |old_value| ... }`
+- [x] `compute(key) { |old_value| ... }`
 - [ ] `upsert(key, initial) { |old_value| ... }`
 
 ### `fetch_or_store`

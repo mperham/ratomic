@@ -1,0 +1,5 @@
+--title "Ratomic API Documentation"
+--readme README.md
+--markup markdown
+--output-dir doc
+lib/**/*.rb
