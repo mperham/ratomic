@@ -13,7 +13,7 @@ rescue LoadError => e
 end
 
 GEMSPEC = Gem::Specification.load("ratomic.gemspec")
-RUBY_VERSION_REQUIREMENT = "3.4"
+RUBY_VERSION_REQUIREMENT = "4.0"
 CROSS_PLATFORMS = %w[
   x86_64-linux
   aarch64-linux
@@ -53,7 +53,7 @@ namespace :gem do
         "ratomic.gemspec"
       ]
     end
-    spec.required_ruby_version = [">= 3.4", "< 3.5.dev"]
+    spec.required_ruby_version = [">= 4.0", "< 4.1.dev"]
 
     mkdir_p("pkg")
     rm_f(gem_file)

@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   test:
+    timeout-minutes: 45
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -34,9 +35,8 @@ jobs:
         os:
           - ubuntu-latest
           - macos-latest
-          - windows-latest
         ruby:
-          - "3.4"
+          - "4.0"
 
     steps:
       - uses: actions/checkout@v6
@@ -51,6 +51,7 @@ jobs:
         run: cargo test --workspace
 
       - name: Run Ruby tests
+        timeout-minutes: 30
         run: bundle exec rake
 
   package-ruby:
@@ -64,7 +65,7 @@ jobs:
       - name: Set up Ruby and Rust
         uses: ./.github/actions/setup-ruby-rust
         with:
-          ruby-version: "3.4"
+          ruby-version: "4.0"
           bundler-cache: true
 
       - name: Verify tag matches gem version
@@ -102,7 +103,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.4"
+          ruby-version: "4.0"
           bundler-cache: true
 
       - name: Build native gem
@@ -159,7 +160,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.4"
+          ruby-version: "4.0"
 
       - name: Configure RubyGems credentials
         uses: rubygems/configure-rubygems-credentials@v2

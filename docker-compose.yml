@@ -9,10 +9,10 @@
 #     docker compose up --build
 #
 #   Run a specific Ruby version:
-#     docker compose run --build ruby34
+#     docker compose run --build ruby40
 #
 #   Run and exit with the test result code (for scripting dx):
-#     docker compose run ruby34
+#     docker compose run ruby40
 #
 #   Tear down:
 #     docker compose down
@@ -20,13 +20,13 @@
 
 services:
 
-  # ruby 3.4 — current stable (status quo)
-  ruby34:
+  # ruby 4.0 — current target
+  ruby40:
     build:
       context: .
       args:
-        RUBY_VERSION: "3.4"
-    image: ratomic-test:ruby34
+        RUBY_VERSION: "4.0"
+    image: ratomic-test:ruby40
     volumes:
       # mount source so edits reflect without rebuild
       # extension must still be recompiled via rake
@@ -34,22 +34,6 @@ services:
       - cargo-cache:/root/.cargo/registry
       - target-cache:/app/target
     command: bundle exec rake
-
-  # --------------------------------------------------------------------------------#
-  # Future versions — uncomment when ready (and most probably delete lines 23-37)   #
-  # ---------------------------------------------------------------------------------#
-  # Ruby 4.0 — target after Ractor API migration (issue #3 roadmap Phase 1)
-  # ruby40:
-  #   build:
-  #     context: .
-  #     args:
-  #       RUBY_VERSION: "4.0"
-  #   image: ratomic-test:ruby40
-  #   volumes:
-  #     - .:/app
-  #     - cargo-cache:/root/.cargo/registry
-  #     - target-cache:/app/ext/ratomic/target
-  #   command: bundle exec rake
 
 volumes:
   cargo-cache:
