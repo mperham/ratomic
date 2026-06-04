@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 module Ratomic
   # A Ractor-shareable concurrent Hash backed by Rust's DashMap.
   #
@@ -130,6 +132,47 @@ module Ratomic
   #   @return [Object] the inserted or newly stored value
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
+  #
+  # @!method increment(key, by = 1)
+  #   Atomically increment the numeric value for +key+.
+  #
+  #   Missing keys start at zero. Existing non-numeric values raise TypeError
+  #   and are left unchanged.
+  #
+  #   @param key [Object]
+  #   @param by [Numeric]
+  #   @return [Numeric] the newly stored value
+  #   @raise [TypeError] if +by+ or the existing value is not numeric
+  #
+  # @!method decrement(key, by = 1)
+  #   Atomically decrement the numeric value for +key+.
+  #
+  #   Missing keys start at zero.
+  #
+  #   @param key [Object]
+  #   @param by [Numeric]
+  #   @return [Numeric] the newly stored value
+  #   @raise [TypeError] if +by+ or the existing value is not numeric
+  #
+  # @!method append(key, value)
+  #   Atomically append +value+ to an Array bucket for +key+.
+  #
+  #   The stored Array is replaced rather than mutated in place.
+  #
+  #   @param key [Object]
+  #   @param value [Object]
+  #   @return [Array] the newly stored frozen Array
+  #   @raise [TypeError] if the existing value is not an Array
+  #
+  # @!method add_to_set(key, value)
+  #   Atomically add +value+ to a Set bucket for +key+.
+  #
+  #   The stored Set is replaced rather than mutated in place.
+  #
+  #   @param key [Object]
+  #   @param value [Object]
+  #   @return [Set] the newly stored frozen Set
+  #   @raise [TypeError] if the existing value is not a Set
   class Map
     # Set a value for +key+.
     #
@@ -165,6 +208,86 @@ module Ratomic
       return default unless default.equal?(UNDEFINED)
 
       raise KeyError, "key not found: #{key.inspect}"
+    end
+
+    # Atomically increment the numeric value for +key+.
+    #
+    # Missing keys start at zero. Existing non-numeric values raise TypeError
+    # and are left unchanged.
+    #
+    # @param key [Object]
+    # @param by [Numeric]
+    # @return [Numeric] the newly stored value
+    # @raise [TypeError] if +by+ or the existing value is not numeric
+    def increment(key, by = 1)
+      raise TypeError, "amount must be numeric: #{by.inspect}" unless by.is_a?(Numeric)
+
+      missing = !key?(key)
+      compute(key) do |old_value|
+        if old_value.nil? && missing
+          by
+        else
+          raise TypeError, "existing value for #{key.inspect} must be numeric: #{old_value.inspect}" unless old_value.is_a?(Numeric)
+
+          old_value + by
+        end
+      end
+    end
+
+    # Atomically decrement the numeric value for +key+.
+    #
+    # Missing keys start at zero.
+    #
+    # @param key [Object]
+    # @param by [Numeric]
+    # @return [Numeric] the newly stored value
+    # @raise [TypeError] if +by+ or the existing value is not numeric
+    def decrement(key, by = 1)
+      raise TypeError, "amount must be numeric: #{by.inspect}" unless by.is_a?(Numeric)
+
+      increment(key, -by)
+    end
+
+    # Atomically append +value+ to an Array bucket for +key+.
+    #
+    # The stored Array is replaced rather than mutated in place.
+    #
+    # @param key [Object]
+    # @param value [Object]
+    # @return [Array] the newly stored frozen Array
+    # @raise [TypeError] if the existing value is not an Array
+    def append(key, value)
+      missing = !key?(key)
+      compute(key) do |old_value|
+        if old_value.nil? && missing
+          [value].freeze
+        else
+          raise TypeError, "existing value for #{key.inspect} must be an Array: #{old_value.inspect}" unless old_value.is_a?(Array)
+
+          (old_value + [value]).freeze
+        end
+      end
+    end
+
+    # Atomically add +value+ to a Set bucket for +key+.
+    #
+    # The stored Set is replaced rather than mutated in place.
+    #
+    # @param key [Object]
+    # @param value [Object]
+    # @return [Set] the newly stored frozen Set
+    # @raise [TypeError] if the existing value is not a Set
+    def add_to_set(key, value)
+      missing = !key?(key)
+      compute(key) do |old_value|
+        if old_value.nil? && missing
+          Set[value].freeze
+        else
+          raise TypeError, "existing value for #{key.inspect} must be a Set: #{old_value.inspect}" unless old_value.is_a?(Set)
+
+          (old_value | [value]).freeze
+        end
+      end
     end
 
     # Alias for #size.

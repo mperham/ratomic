@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "timeout"
+
 module Ratomic
   # A Ractor-safe ownership-transfer pool for mutable Ruby objects.
   #

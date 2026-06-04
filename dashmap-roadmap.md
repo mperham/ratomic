@@ -137,10 +137,10 @@ Expected behavior:
 
 These methods turn common concurrent-map patterns into obvious Ruby APIs.
 
-- [ ] `increment(key, by = 1)`
-- [ ] `decrement(key, by = 1)`
-- [ ] `append(key, value)`
-- [ ] `add_to_set(key, value)`
+- [x] `increment(key, by = 1)`
+- [x] `decrement(key, by = 1)`
+- [x] `append(key, value)`
+- [x] `add_to_set(key, value)`
 
 ### Counters And Histograms
 
@@ -220,20 +220,5 @@ map forward immediately.
 
 The best PRs keep the Ruby API boring and let DashMap do the zooming underneath.
 
-## Non-Goals For Now
 
-- Full Ruby Hash compatibility.
-- Exposing DashMap guards.
-- Exposing shard-level APIs.
-- Supporting arbitrary in-place mutation of stored mutable objects.
-- Promising strongly consistent iteration during concurrent mutation.
-
-## Release Notes Template
-
-```md
-## [x.y.z] - YYYY-MM-DD
-
-- Add `Ratomic::Map#fetch_or_store` for Ractor-safe concurrent cache initialization.
-- Add `Ratomic::Map#compute` for atomic per-key updates.
-- Add `Ratomic::Map#increment` and `#decrement` for concurrent counters.
 ```
