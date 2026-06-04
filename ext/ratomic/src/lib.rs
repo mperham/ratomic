@@ -64,10 +64,12 @@ impl DataTypeFunctions for Counter {}
 unsafe impl TypedData for Counter {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            ruby.define_module("Ratomic")
+            let class = ruby.define_module("Ratomic")
                 .unwrap()
                 .define_class("Counter", ruby.class_object())
-                .unwrap()
+                .unwrap();
+            class.undef_default_alloc_func();
+            class
         });
         ruby.get_inner(&CLASS)
     }
@@ -130,10 +132,12 @@ impl DataTypeFunctions for HashMap {
 unsafe impl TypedData for HashMap {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            ruby.define_module("Ratomic")
+            let class = ruby.define_module("Ratomic")
                 .unwrap()
                 .define_class("ConcurrentHashMap", ruby.class_object())
-                .unwrap()
+                .unwrap();
+            class.undef_default_alloc_func();
+            class
         });
         ruby.get_inner(&CLASS)
     }
@@ -237,10 +241,12 @@ impl DataTypeFunctions for Queue {
 unsafe impl TypedData for Queue {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            ruby.define_module("Ratomic")
+            let class = ruby.define_module("Ratomic")
                 .unwrap()
                 .define_class("Queue", ruby.class_object())
-                .unwrap()
+                .unwrap();
+            class.undef_default_alloc_func();
+            class
         });
         ruby.get_inner(&CLASS)
     }
@@ -334,10 +340,12 @@ impl DataTypeFunctions for Pool {
 unsafe impl TypedData for Pool {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            ruby.define_module("Ratomic")
+            let class = ruby.define_module("Ratomic")
                 .unwrap()
                 .define_class("FixedSizeObjectPool", ruby.class_object())
-                .unwrap()
+                .unwrap();
+            class.undef_default_alloc_func();
+            class
         });
         ruby.get_inner(&CLASS)
     }
@@ -358,12 +366,14 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let root = ruby.define_module("Ratomic")?;
 
     let counter = root.define_class("Counter", ruby.class_object())?;
+    counter.undef_default_alloc_func();
     counter.define_singleton_method("new", method!(Counter::new, 0))?;
     counter.define_method("increment", method!(Counter::increment, 1))?;
     counter.define_method("decrement", method!(Counter::decrement, 1))?;
     counter.define_method("read", method!(Counter::read, 0))?;
 
     let hashmap = root.define_class("ConcurrentHashMap", ruby.class_object())?;
+    hashmap.undef_default_alloc_func();
     hashmap.define_singleton_method("new", method!(HashMap::new, 0))?;
     hashmap.define_method("get", method!(HashMap::get, 1))?;
     hashmap.define_method("set", method!(HashMap::set, 2))?;
@@ -372,6 +382,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     hashmap.define_method("fetch_and_modify", method!(HashMap::fetch_and_modify, 1))?;
 
     let queue = root.define_class("Queue", ruby.class_object())?;
+    queue.undef_default_alloc_func();
     queue.define_singleton_method("new", method!(Queue::new, 1))?;
     queue.define_method("push", method!(Queue::push, 1))?;
     queue.define_method("pop", method!(Queue::pop, 0))?;
@@ -381,6 +392,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     queue.define_method("size", method!(Queue::size, 0))?;
 
     let pool = root.define_class("FixedSizeObjectPool", ruby.class_object())?;
+    pool.undef_default_alloc_func();
     pool.define_singleton_method("new", method!(Pool::new, -1))?;
     pool.define_method("checkout", method!(Pool::checkout, 0))?;
     pool.define_method("checkin", method!(Pool::checkin, 1))?;

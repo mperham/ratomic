@@ -21,6 +21,7 @@ rake
 ```
 
 This should compile the Rust code and run all tests.
+The test suite writes a SimpleCov report to `coverage/index.html` so you can see which Ruby wrapper paths are covered.
 
 ## Installation
 
@@ -56,6 +57,8 @@ c.inc(5)
 c.dec(1)
 c.dec
 c.read # => 4
+c.to_i # => 4
+c.zero? # => false
 ```
 
 ### `Ratomic::Pool`
@@ -132,7 +135,9 @@ A Ractor-safe map/hash structure:
 HASH = Ratomic::Map.new
 HASH["mike"] = 123
 HASH["mike"] # => 123
-HASH.fetch_and_modify(key) {|value| v + 1 }
+HASH.fetch_and_modify("mike") { |value| value + 1 }
+HASH.length
+HASH.empty?
 HASH.clear
 ```
 
@@ -144,7 +149,7 @@ A multi-producer, multi-consumer queue.
 q = Ratomic::Queue.new(128)
 
 q.push("hello")
-q.push("world")
+q << "world"
 
 q.size     # => 2
 q.empty?   # => false
