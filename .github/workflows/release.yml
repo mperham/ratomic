@@ -145,33 +145,40 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish && !inputs['dry-run'])
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # Changed to write so rubygems/release-gem can manage git tags if needed
-      id-token: write      # Required for Trusted Publishing
+      id-token: write      # Required for Trusted Publishing OIDC authentication
+      contents: write      # Allows writing/tagging if needed
     environment: release
 
     steps:
-      # Checkout code so the git repository context exists
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0    # Fetches full history and tags
+          fetch-depth: 0
 
-      # Set up Ruby environment required by the action
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "4.0"
           bundler-cache: true
 
-      #  Download all pre-compiled native and pure ruby gems
       - name: Download gem artifacts
         uses: actions/download-artifact@v7
         with:
           path: pkg/
           merge-multiple: true
 
-      # Use skip-build to push the downloaded artifacts instead of running rake release
-      - name: Publish gems to RubyGems.org
-        uses: rubygems/release-gem@v1
-        with:
-          skip-build: true
+      # Authenticate with RubyGems via Trusted Publishing (OIDC)
+      - name: Configure RubyGems Credentials
+        uses: rubygems/configure-rubygems-credentials@v0
+
+      # Push all variants (Ruby + Native Platform gems)
+      - name: Publish all gems to RubyGems.org
+        run: |
+          for gem in pkg/*.gem; do
+            echo "Pushing $gem..."
+            gem push "$gem"
+          done
+
+      # Optional: Await the global CDNs to synchronize
+      - name: Await release availability
+        run: gem exec rubygems-await pkg/*.gem
