@@ -57,10 +57,10 @@ That distinction matters. A mutable pooled object is not shared by multiple Ract
 ```ruby
 c = Ratomic::Counter.new
 c.read # => 0
-c.inc
-c.inc(5)
-c.dec(1)
-c.dec
+c.increment(1)
+c.increment(5)
+c.decrement(1)
+c.decrement(1)
 c.read # => 4
 c.to_i # => 4
 c.zero? # => false

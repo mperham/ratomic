@@ -530,7 +530,7 @@ class MapUnitTest < Minitest::Test
     workers = 4.times.map do |worker_id|
       Ractor.new(map, initializer_count, worker_id) do |ractor_map, counter, id|
         ractor_map.fetch_or_store(:source) do
-          counter.inc
+          counter.increment(1)
           "source-#{id}"
         end
       end

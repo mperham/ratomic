@@ -1,18 +1,6 @@
 # frozen_string_literal: true
 
 module Ratomic
-  # Ruby convenience methods for {Queue}.
-  module QueueMethods
-    # Push an item and return the queue for chaining.
-    #
-    # @param item [Object]
-    # @return [Ratomic::Queue]
-    def <<(item)
-      push(item)
-      self
-    end
-  end
-
   # A Ractor-shareable multi-producer, multi-consumer queue.
   #
   # Queue stores Ruby objects in a fixed-size native ring buffer. Push blocks
@@ -71,6 +59,13 @@ module Ratomic
   #
   #   @return [Integer]
   class Queue
-    prepend QueueMethods
+    # Push an item and return the queue for chaining.
+    #
+    # @param item [Object]
+    # @return [Ratomic::Queue]
+    def <<(item)
+      push(item)
+      self
+    end
   end
 end

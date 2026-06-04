@@ -15,26 +15,26 @@ class CounterUnitTest < Minitest::Test
   def test_increment_and_decrement_return_to_zero
     counter = Ratomic::Counter.new
 
-    counter.inc(5)
-    counter.dec(2)
+    counter.increment(5)
+    counter.decrement(2)
     counter.decrement(3)
 
     assert_equal 0, counter.read
     assert_predicate counter, :zero?
   end
 
-  def test_rejects_negative_wrapper_amounts
+  def test_short_increment_and_decrement_aliases_are_not_defined
     counter = Ratomic::Counter.new
 
-    assert_raises(ArgumentError) { counter.inc(-1) }
-    assert_raises(ArgumentError) { counter.dec(-1) }
+    refute_respond_to counter, :inc
+    refute_respond_to counter, :dec
   end
 
   def test_counter_is_shareable
     counter = Ratomic::Counter.new
 
     worker = Ractor.new(counter) do |ractor_counter|
-      ractor_counter.inc(2)
+      ractor_counter.increment(2)
       ractor_counter.to_i
     end
 

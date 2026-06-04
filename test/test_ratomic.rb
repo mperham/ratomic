@@ -9,9 +9,9 @@ class TestRatomic < Minitest::Test
 
   def test_counter_counts
     c = Ratomic::Counter.new
-    c.inc
     c.increment(1)
-    c.inc(3)
+    c.increment(1)
+    c.increment(3)
     val = c.read
     assert_equal 5, val
   end
@@ -22,7 +22,7 @@ class TestRatomic < Minitest::Test
     counter = Ratomic::Counter.new
     ractors = 1.upto(cpus).map do |i|
       Ractor.new(iter, counter) do |iter, counter|
-        iter.times { counter.inc }
+        iter.times { counter.increment(1) }
         :done
       end
     end
