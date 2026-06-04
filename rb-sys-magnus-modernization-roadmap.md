@@ -46,9 +46,9 @@
 - [x] Add `.github/actions/setup-ruby-rust/action.yml`
 - [x] Update `test.yml` to use composite action
 - [x] Add `release.yml` with full pipeline
-- [ ] Configure Trusted Publisher on RubyGems.org (owner: mperham, repo: ratomic, workflow: release.yml, environment: release)
-- [ ] Dry-run the workflow via `workflow_dispatch` — verify gem list correct
-- [ ] Publish v0.2.0
+- [x] Configure Trusted Publisher on RubyGems.org (owner: mperham, repo: ratomic, workflow: release.yml, environment: release)
+- [x] Dry-run the workflow via `workflow_dispatch` — verify gem list correct
+- [x] Publish v0.2.0
 
 ### PR 5 — Ruby 4 migration
 - [x] CI ruby matrix in `test.yml` set to `["4.0"]` only — drops Ruby 3.x per alignment with Mike
