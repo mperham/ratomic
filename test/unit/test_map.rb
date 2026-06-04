@@ -6,6 +6,8 @@ class MapUnitTest < Minitest::Test
   def test_new_map_is_empty
     map = Ratomic::Map.new
 
+    assert_equal Ratomic::Map, map.class
+    assert_match "#<Ratomic::Map:", map.inspect
     assert_equal 0, map.size
     assert_equal 0, map.length
     assert_predicate map, :empty?
@@ -26,6 +28,44 @@ class MapUnitTest < Minitest::Test
 
     assert_nil map[:source]
     assert_predicate map, :empty?
+  end
+
+  def test_key_predicates_distinguish_missing_keys_from_nil_values
+    map = Ratomic::Map.new
+
+    refute map.key?(:source)
+    refute map.include?(:source)
+    refute map.member?(:source)
+
+    map[:source] = nil
+
+    assert map.key?(:source)
+    assert map.include?(:source)
+    assert map.member?(:source)
+    assert_nil map[:source]
+  end
+
+  def test_delete_removes_entry_and_returns_previous_value
+    map = Ratomic::Map.new
+    map[:source] = "postgres"
+
+    assert_equal "postgres", map.delete(:source)
+    refute map.key?(:source)
+    assert_nil map[:source]
+  end
+
+  def test_delete_returns_nil_for_missing_key
+    map = Ratomic::Map.new
+
+    assert_nil map.delete(:missing)
+  end
+
+  def test_delete_returns_nil_for_stored_nil_value
+    map = Ratomic::Map.new
+    map[:source] = nil
+
+    assert_nil map.delete(:source)
+    refute map.key?(:source)
   end
 
   def test_fetch_and_modify_updates_existing_value

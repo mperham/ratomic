@@ -7,7 +7,7 @@ mod sem;
 
 use counter::AtomicCounter;
 use fixed_size_object_pool::FixedSizeObjectPool;
-use hashmap::ConcurrentHashMap;
+use hashmap::MapStore;
 use magnus::{
     data_type_builder, method, IntoValue,
     prelude::*,
@@ -81,11 +81,11 @@ unsafe impl TypedData for Counter {
     }
 }
 
-struct HashMap(ConcurrentHashMap);
+struct HashMap(MapStore);
 
 impl HashMap {
     fn new(ruby: &Ruby, class: RClass) -> Result<Value, Error> {
-        let value = ruby.wrap_as(Self(ConcurrentHashMap::new()), class).as_value();
+        let value = ruby.wrap_as(Self(MapStore::new()), class).as_value();
         make_shareable(ruby, value)
     }
 
@@ -94,8 +94,17 @@ impl HashMap {
         unsafe { value_from_raw(raw) }.into_value_with(ruby)
     }
 
+    fn contains_key(&self, key: Value) -> bool {
+        self.0.contains_key(value_to_raw(key))
+    }
+
     fn set(&self, key: Value, value: Value) {
         self.0.set(value_to_raw(key), value_to_raw(value));
+    }
+
+    fn delete(ruby: &Ruby, rb_self: &Self, key: Value) -> Value {
+        let raw = rb_self.0.delete(value_to_raw(key)).unwrap_or_else(qnil_raw);
+        unsafe { value_from_raw(raw) }.into_value_with(ruby)
     }
 
     fn clear(&self) {
@@ -145,7 +154,7 @@ unsafe impl TypedData for HashMap {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
             let class = ruby.define_module("Ratomic")
                 .unwrap()
-                .define_class("ConcurrentHashMap", ruby.class_object())
+                .define_class("Map", ruby.class_object())
                 .unwrap();
             class.undef_default_alloc_func();
             class
@@ -383,11 +392,13 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     counter.define_method("decrement", method!(Counter::decrement, 1))?;
     counter.define_method("read", method!(Counter::read, 0))?;
 
-    let hashmap = root.define_class("ConcurrentHashMap", ruby.class_object())?;
+    let hashmap = root.define_class("Map", ruby.class_object())?;
     hashmap.undef_default_alloc_func();
     hashmap.define_singleton_method("new", method!(HashMap::new, 0))?;
     hashmap.define_method("get", method!(HashMap::get, 1))?;
+    hashmap.define_method("key?", method!(HashMap::contains_key, 1))?;
     hashmap.define_method("set", method!(HashMap::set, 2))?;
+    hashmap.define_method("delete", method!(HashMap::delete, 1))?;
     hashmap.define_method("clear", method!(HashMap::clear, 0))?;
     hashmap.define_method("size", method!(HashMap::size, 0))?;
     hashmap.define_method("fetch_and_modify", method!(HashMap::fetch_and_modify, 1))?;

@@ -41,10 +41,10 @@ shortcut through traffic.
 These methods make `Ratomic::Map` feel like a practical Ruby map without exposing
 DashMap internals.
 
-- [ ] `key?(key)`
-- [ ] `include?(key)`
-- [ ] `member?(key)`
-- [ ] `delete(key)`
+- [x] `key?(key)`
+- [x] `include?(key)`
+- [x] `member?(key)`
+- [x] `delete(key)`
 - [ ] `fetch(key, default = Ratomic::Undefined) { ... }`
 
 ### Notes

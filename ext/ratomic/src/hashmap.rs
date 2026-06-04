@@ -18,11 +18,11 @@ impl std::hash::Hash for RubyHashEql {
     }
 }
 
-pub struct ConcurrentHashMap {
+pub struct MapStore {
     map: dashmap::DashMap<RubyHashEql, VALUE>,
 }
 
-impl ConcurrentHashMap {
+impl MapStore {
     pub fn new() -> Self {
         Self {
             map: dashmap::DashMap::new(),
@@ -33,8 +33,16 @@ impl ConcurrentHashMap {
         self.map.get(&RubyHashEql(key)).map(|v| *v)
     }
 
+    pub fn contains_key(&self, key: VALUE) -> bool {
+        self.map.contains_key(&RubyHashEql(key))
+    }
+
     pub fn set(&self, key: VALUE, value: VALUE) {
         self.map.insert(RubyHashEql(key), value);
+    }
+
+    pub fn delete(&self, key: VALUE) -> Option<VALUE> {
+        self.map.remove(&RubyHashEql(key)).map(|(_, value)| value)
     }
 
     pub fn clear(&self) {
@@ -63,7 +71,7 @@ impl ConcurrentHashMap {
     }
 }
 
-impl Default for ConcurrentHashMap {
+impl Default for MapStore {
     fn default() -> Self {
         Self::new()
     }

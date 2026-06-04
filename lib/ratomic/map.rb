@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
 module Ratomic
-  # A Ractor-shareable concurrent map.
+  # A Ractor-shareable concurrent Hash backed by Rust's DashMap.
   #
-  # Map is a public alias for the native ConcurrentHashMap class. It is suitable
-  # for runtime state with shareable keys and values that are safe to access
-  # from multiple Ractors, such as counters or immutable offsets.
+  # Map gives Ruby code a small, Ruby-shaped API over DashMap's concurrent
+  # storage. It is suitable for runtime state with shareable keys and values
+  # that are safe to access from multiple Ractors, such as counters or immutable
+  # offsets.
   #
   # This is not a full Hash replacement. Iteration and arbitrary mutable object
   # borrowing are intentionally absent.
@@ -14,10 +15,7 @@ module Ratomic
   #   OFFSETS = Ratomic::Map.new
   #   OFFSETS[:source_a] = 42
   #   OFFSETS[:source_a] # => 42
-  Map = ConcurrentHashMap
-
-  # Ruby convenience methods for {Map}.
-  module MapMethods
+  class Map
     # Set a value for +key+.
     #
     # @param key [Object]
@@ -37,6 +35,23 @@ module Ratomic
       get(key)
     end
 
+    # Fetch a value by +key+.
+    #
+    # Unlike #[], this distinguishes missing keys from explicit nil values.
+    #
+    # @param key [Object]
+    # @param default [Object]
+    # @yieldparam key [Object]
+    # @return [Object]
+    # @raise [KeyError] if +key+ is missing and no default or block is provided
+    def fetch(key, default = UNDEFINED)
+      return get(key) if key?(key)
+      return yield key if block_given?
+      return default unless default.equal?(UNDEFINED)
+
+      raise KeyError, "key not found: #{key.inspect}"
+    end
+
     # Alias for #size.
     #
     # @return [Integer]
@@ -50,7 +65,14 @@ module Ratomic
     def empty?
       size.zero?
     end
-  end
 
-  ConcurrentHashMap.prepend(MapMethods)
+    # Alias for #key?.
+    #
+    # @param key [Object]
+    # @return [Boolean]
+    def include?(key)
+      key?(key)
+    end
+    alias member? include?
+  end
 end

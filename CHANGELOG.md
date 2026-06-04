@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+- Add `Ratomic::Map#key?`, `#include?`, `#member?`, and `#delete`.
+
 ## [0.2.1] - 2026-06-04
 
 - Fix `Ratomic::Queue` slot indexing for non-power-of-two capacities.
