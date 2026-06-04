@@ -6,16 +6,16 @@
 [![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%204.0-ruby.svg)](https://www.ruby-lang.org/en/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-
 Ratomic provides mutable data structures for use with Ruby's Ractors.
 This allows Ruby code to scale beyond the infamous GVL.
 
-# HELP WANTED!
+## Project direction
 
-> If you know Rust and Ruby C-extensions, we need your help!
-> This project is brand new and could use your knowledge!
-> If you don't know Rust or C, consider this a challenge to learn and solve.
-> Read through the [issues](//github.com/mperham/ratomic/issues) to find work that sounds interesting to you.
+Ratomic is focused on practical Ractor-safe primitives backed by proven Rust concurrency libraries.
+
+`Ratomic::Map` is the current priority: a Ruby-facing concurrent Hash powered by DashMap, with atomic per-key operations designed for real Ractor workloads. We are building from that foundation carefully, with a small API surface, clear ownership semantics, and honest documentation about the limits of each primitive.
+
+Our core principles are honesty and transparency: document tradeoffs, name sharp edges, keep APIs small until their behavior is proven, and prefer established Rust concurrency libraries where they fit Ruby's Ractor semantics.
 
 ## How to contribute
 
@@ -142,8 +142,10 @@ HASH["mike"] = 123
 HASH["mike"] # => 123
 HASH.key?("mike") # => true
 HASH.fetch("missing", 0) # => 0
+HASH.fetch_or_store("count") { 0 } # => 0
+HASH.compute("mike") { |value| value + 1 } # => 124
 HASH.fetch_and_modify("mike") { |value| value + 1 }
-HASH.delete("mike") # => 124
+HASH.delete("mike") # => 125
 HASH.length
 HASH.empty?
 HASH.clear
