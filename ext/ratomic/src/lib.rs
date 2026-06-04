@@ -9,15 +9,15 @@ use counter::AtomicCounter;
 use fixed_size_object_pool::FixedSizeObjectPool;
 use hashmap::MapStore;
 use magnus::{
-    data_type_builder, method, IntoValue,
+    data_type_builder, method,
     prelude::*,
     typed_data::{DataType, DataTypeFunctions},
     value::Lazy,
-    Error, RClass, Ruby, TryConvert, TypedData, Value,
+    Error, IntoValue, RClass, Ruby, TryConvert, TypedData, Value,
 };
 use mpmc_queue::MpmcQueue;
-use rb_sys::{rb_ext_ractor_safe, rb_thread_call_without_gvl, ruby_special_consts, VALUE};
 use parking_lot::Mutex;
+use rb_sys::{rb_ext_ractor_safe, rb_thread_call_without_gvl, ruby_special_consts, VALUE};
 use std::{ffi::c_void, mem::transmute};
 
 fn value_to_raw(value: Value) -> VALUE {
@@ -64,7 +64,8 @@ impl DataTypeFunctions for Counter {}
 unsafe impl TypedData for Counter {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            let class = ruby.define_module("Ratomic")
+            let class = ruby
+                .define_module("Ratomic")
                 .unwrap()
                 .define_class("Counter", ruby.class_object())
                 .unwrap();
@@ -75,8 +76,9 @@ unsafe impl TypedData for Counter {
     }
 
     fn data_type() -> &'static DataType {
-        static DATA_TYPE: DataType =
-            data_type_builder!(Counter, "ratomic/counter").frozen_shareable().build();
+        static DATA_TYPE: DataType = data_type_builder!(Counter, "ratomic/counter")
+            .frozen_shareable()
+            .build();
         &DATA_TYPE
     }
 }
@@ -141,18 +143,37 @@ impl HashMap {
             Ok(())
         }
     }
+
+    fn compute(ruby: &Ruby, rb_self: &Self, key: Value) -> Result<Value, Error> {
+        if !ruby.block_given() {
+            return Err(Error::new(
+                ruby.exception_local_jump_error(),
+                "no block given",
+            ));
+        }
+
+        let proc = ruby.block_proc()?;
+        let raw = rb_self.0.compute(value_to_raw(key), qnil_raw(), |value| {
+            proc.call::<_, Value>((unsafe { value_from_raw(value) },))
+                .map(value_to_raw)
+        })?;
+
+        Ok(unsafe { value_from_raw(raw) }.into_value_with(ruby))
+    }
 }
 
 impl DataTypeFunctions for HashMap {
     fn mark(&self, marker: &magnus::gc::Marker) {
-        self.0.mark(|value| marker.mark(unsafe { value_from_raw(value) }));
+        self.0
+            .mark(|value| marker.mark(unsafe { value_from_raw(value) }));
     }
 }
 
 unsafe impl TypedData for HashMap {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            let class = ruby.define_module("Ratomic")
+            let class = ruby
+                .define_module("Ratomic")
                 .unwrap()
                 .define_class("Map", ruby.class_object())
                 .unwrap();
@@ -254,14 +275,16 @@ impl Queue {
 
 impl DataTypeFunctions for Queue {
     fn mark(&self, marker: &magnus::gc::Marker) {
-        self.0.mark(|value| marker.mark(unsafe { value_from_raw(value) }));
+        self.0
+            .mark(|value| marker.mark(unsafe { value_from_raw(value) }));
     }
 }
 
 unsafe impl TypedData for Queue {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            let class = ruby.define_module("Ratomic")
+            let class = ruby
+                .define_module("Ratomic")
                 .unwrap()
                 .define_class("Queue", ruby.class_object())
                 .unwrap();
@@ -287,7 +310,10 @@ impl Pool {
         if args.len() > 2 {
             return Err(Error::new(
                 ruby.exception_arg_error(),
-                format!("wrong number of arguments (given {}, expected 0..2)", args.len()),
+                format!(
+                    "wrong number of arguments (given {}, expected 0..2)",
+                    args.len()
+                ),
             ));
         }
         let size = args
@@ -305,7 +331,10 @@ impl Pool {
             .unwrap_or(1000);
 
         if size == 0 {
-            return Err(Error::new(ruby.exception_arg_error(), "pool size must be positive"));
+            return Err(Error::new(
+                ruby.exception_arg_error(),
+                "pool size must be positive",
+            ));
         }
         if !ruby.block_given() {
             return Err(Error::new(
@@ -360,7 +389,8 @@ impl DataTypeFunctions for Pool {
 unsafe impl TypedData for Pool {
     fn class(ruby: &Ruby) -> RClass {
         static CLASS: Lazy<RClass> = Lazy::new(|ruby| {
-            let class = ruby.define_module("Ratomic")
+            let class = ruby
+                .define_module("Ratomic")
                 .unwrap()
                 .define_class("FixedSizeObjectPool", ruby.class_object())
                 .unwrap();
@@ -402,6 +432,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     hashmap.define_method("clear", method!(HashMap::clear, 0))?;
     hashmap.define_method("size", method!(HashMap::size, 0))?;
     hashmap.define_method("fetch_and_modify", method!(HashMap::fetch_and_modify, 1))?;
+    hashmap.define_method("compute", method!(HashMap::compute, 1))?;
 
     let queue = root.define_class("Queue", ruby.class_object())?;
     queue.undef_default_alloc_func();

@@ -136,6 +136,64 @@ class MapUnitTest < Minitest::Test
     assert_equal 1, map[:processed]
   end
 
+  def test_compute_updates_existing_value_and_returns_new_value
+    map = Ratomic::Map.new
+    map[:processed] = 1
+
+    result = map.compute(:processed) { |value| value + 41 }
+
+    assert_equal 42, result
+    assert_equal 42, map[:processed]
+  end
+
+  def test_compute_inserts_missing_key
+    map = Ratomic::Map.new
+
+    result = map.compute(:processed) { |value| value.to_i + 1 }
+
+    assert_equal 1, result
+    assert_equal 1, map[:processed]
+  end
+
+  def test_compute_yields_stored_nil_value
+    map = Ratomic::Map.new
+    map[:processed] = nil
+
+    result = map.compute(:processed) { |value| value.nil? ? 1 : 0 }
+
+    assert_equal 1, result
+    assert_equal 1, map[:processed]
+  end
+
+  def test_compute_requires_a_block
+    map = Ratomic::Map.new
+
+    assert_raises(LocalJumpError) { map.compute(:processed) }
+  end
+
+  def test_compute_preserves_existing_value_when_block_raises
+    map = Ratomic::Map.new
+    map[:processed] = 1
+
+    error = assert_raises(RuntimeError) do
+      map.compute(:processed) { raise "boom" }
+    end
+
+    assert_equal "boom", error.message
+    assert_equal 1, map[:processed]
+  end
+
+  def test_compute_does_not_insert_missing_key_when_block_raises
+    map = Ratomic::Map.new
+
+    error = assert_raises(RuntimeError) do
+      map.compute(:processed) { raise "boom" }
+    end
+
+    assert_equal "boom", error.message
+    refute map.key?(:processed)
+  end
+
   def test_map_is_shareable
     map = Ratomic::Map.new
     map[:events] = 0
@@ -147,5 +205,22 @@ class MapUnitTest < Minitest::Test
 
     assert_equal 5, ractor_value(worker)
     assert_equal 5, map[:events]
+  end
+
+  def test_compute_updates_atomically_across_ractors
+    map = Ratomic::Map.new
+    map[:events] = 0
+
+    workers = 4.times.map do
+      Ractor.new(map) do |ractor_map|
+        25.times do
+          ractor_map.compute(:events) { |value| value + 1 }
+        end
+        :done
+      end
+    end
+
+    assert_equal [:done] * workers.length, workers.map { |worker| ractor_value(worker) }
+    assert_equal 100, map[:events]
   end
 end

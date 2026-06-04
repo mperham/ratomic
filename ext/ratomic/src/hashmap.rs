@@ -1,3 +1,4 @@
+use dashmap::mapref::entry::Entry;
 use rb_sys::{rb_eql, rb_hash, VALUE};
 
 #[derive(Debug)]
@@ -58,6 +59,24 @@ impl MapStore {
         F: FnOnce(VALUE) -> VALUE,
     {
         self.map.alter(&RubyHashEql(key), |_, value| f(value));
+    }
+
+    pub fn compute<F, E>(&self, key: VALUE, missing: VALUE, f: F) -> Result<VALUE, E>
+    where
+        F: FnOnce(VALUE) -> Result<VALUE, E>,
+    {
+        match self.map.entry(RubyHashEql(key)) {
+            Entry::Occupied(mut entry) => {
+                let new_value = f(*entry.get())?;
+                entry.insert(new_value);
+                Ok(new_value)
+            }
+            Entry::Vacant(entry) => {
+                let new_value = f(missing)?;
+                entry.insert(new_value);
+                Ok(new_value)
+            }
+        }
     }
 
     pub fn mark<F>(&self, f: F)
