@@ -27,7 +27,9 @@ RbSys::ExtensionTask.new("ratomic", GEMSPEC) do |ext|
   ext.cross_compile = true
   ext.cross_platform = [ENV.fetch("RUBY_TARGET", nil)].compact
 end
-Minitest::TestTask.create
+Minitest::TestTask.create do |task|
+  task.test_prelude = %(require "support/simplecov")
+end
 
 task build: :compile
 

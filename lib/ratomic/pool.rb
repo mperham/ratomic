@@ -73,6 +73,20 @@ module Ratomic
       nil
     end
 
+    # Stop the private coordinator Ractor.
+    #
+    # This is primarily useful for tests and short-lived scripts. A closed pool
+    # should not be used for further checkout/checkin operations.
+    #
+    # @return [nil]
+    def close
+      @control << [:shutdown]
+      @control.value
+      nil
+    rescue Ractor::ClosedError, Ractor::Error
+      nil
+    end
+
     # Checkout an object, yield it, then move it back to the pool.
     #
     # This is the preferred API because it guarantees checkin through an ensure
@@ -101,7 +115,7 @@ module Ratomic
 
       loop do
         command, *args = Ractor.receive
-        handle_command(command, args, available, waiting)
+        break if handle_command(command, args, available, waiting) == :shutdown
       end
     end
     private_class_method :run_control_loop
@@ -114,6 +128,8 @@ module Ratomic
         handle_checkin(args.fetch(0), available, waiting)
       when :cancel
         waiting.delete(args.fetch(0))
+      when :shutdown
+        :shutdown
       end
     end
     private_class_method :handle_command
