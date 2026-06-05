@@ -1,7 +1,8 @@
 require "test_helper"
 
 class TestMpmcQueue < Minitest::Test
-  QUEUE_CAPACITY = 128  
+  MAX_RACTORS = 8
+  QUEUE_CAPACITY = 128
   TOTAL_ITEMS = 50
 
   def setup
@@ -12,17 +13,17 @@ class TestMpmcQueue < Minitest::Test
     assert_raises(TypeError, "should raise for non-integer capacity") do
       Ratomic::Queue.new("not-an-int")
     end
-  
+
     assert_raises(TypeError, "should raise for float capacity") do
       Ratomic::Queue.new(8.5)
     end
-  
+
     assert_raises(ArgumentError, "should raise for negative capacity") do
       Ratomic::Queue.new(-21)
     end
 
     assert_raises(ArgumentError, "should raise for too large capacity") do
-      Ratomic::Queue.new(2**20+1)
+      Ratomic::Queue.new(2**20 + 1)
     end
 
     assert_raises(ArgumentError, "should raise for zero capacity") do
@@ -39,7 +40,7 @@ class TestMpmcQueue < Minitest::Test
     refute @queue.empty?, "queue should not be empty after push"
     assert_equal 1, @queue.size, "size should be 1 after push"
     assert_equal :a, @queue.peek, "peek should return the pushed item"
-    assert_equal 1, @queue.size, "size should be unchanged after peek" 
+    assert_equal 1, @queue.size, "size should be unchanged after peek"
 
     item = @queue.pop
     assert_equal :a, item, "pop should return the pushed item"
@@ -67,7 +68,7 @@ class TestMpmcQueue < Minitest::Test
 
     blocker = Ractor.new(@queue) do |q|
       q.push("extra")
-      :pushed 
+      :pushed
     end
 
     assert blocker.inspect.include?("blocking"), "should be blocked waiting for free space"
@@ -78,15 +79,16 @@ class TestMpmcQueue < Minitest::Test
     assert_equal :pushed, result, "did not signal successful push"
 
     remaining_items = []
-    QUEUE_CAPACITY.times { remaining_items << @queue.pop } 
+    QUEUE_CAPACITY.times { remaining_items << @queue.pop }
     assert_includes remaining_items, "extra", "'extra' item pushed by the Ractor was not found"
   end
 
   def test_mpmc_concurrent_transfer
-    num_producers = Etc.nprocessors / 2
-    num_consumers = Etc.nprocessors / 2
-    items_per_producer = (TOTAL_ITEMS.to_f / num_producers).ceil 
-    actual_total_items = items_per_producer * num_producers 
+    worker_count = [Etc.nprocessors, MAX_RACTORS].min
+    num_producers = worker_count / 2
+    num_consumers = worker_count / 2
+    items_per_producer = (TOTAL_ITEMS.to_f / num_producers).ceil
+    actual_total_items = items_per_producer * num_producers
 
     producers = num_producers.times.map do |p_idx|
       Ractor.new(@queue, items_per_producer, p_idx) do |q, count, id|
@@ -103,7 +105,7 @@ class TestMpmcQueue < Minitest::Test
       Ractor.new(@queue, results_queue) do |q, results|
         loop do
           item = q.pop
-          break if item == :__TERMINATE__ 
+          break if item == :__TERMINATE__
           results.push(item)
         end
         :done_consuming

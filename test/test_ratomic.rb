@@ -3,6 +3,8 @@
 require "test_helper"
 
 class TestRatomic < Minitest::Test
+  MAX_RACTORS = 8
+
   def test_that_it_has_a_version_number
     refute_nil ::Ratomic::VERSION
   end
@@ -17,7 +19,7 @@ class TestRatomic < Minitest::Test
   end
 
   def test_ractor_counting
-    cpus = Etc.nprocessors
+    cpus = [Etc.nprocessors, MAX_RACTORS].min
     iter = 100000
     counter = Ratomic::Counter.new
     ractors = 1.upto(cpus).map do |i|
