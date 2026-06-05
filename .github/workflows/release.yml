@@ -52,7 +52,9 @@ jobs:
 
       - name: Run Ruby tests
         timeout-minutes: 30
-        run: bundle exec rake
+        env:
+          RATOMIC_PERFORMANCE_TESTS: "1"
+        run: bundle exec rake A="--verbose"
 
   package-ruby:
     name: Package ruby gem
