@@ -35,4 +35,6 @@ jobs:
         run: cargo test --workspace
 
       - name: Compile extension and run the default task
+        env:
+          RATOMIC_PERFORMANCE_TESTS: "1"
         run: bundle exec rake
