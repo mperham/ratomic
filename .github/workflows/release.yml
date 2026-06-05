@@ -147,7 +147,9 @@ jobs:
     permissions:
       id-token: write      # Required for Trusted Publishing OIDC authentication
       contents: write      # Allows writing/tagging if needed
-    environment: release
+    environment:
+      name: release
+      url: https://rubygems.org/gems/ratomic
 
     steps:
       - name: Checkout repository
