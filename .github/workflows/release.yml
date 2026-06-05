@@ -20,6 +20,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RUST_MIN_STACK: "33554432"
+
 concurrency:
   group: gem-release-${{ github.ref_name }}
   cancel-in-progress: false
@@ -173,17 +176,10 @@ jobs:
       - name: Configure RubyGems Credentials
         uses: rubygems/configure-rubygems-credentials@v2.0.0
 
-      # Push platform gems only by filtering out the generic/fallback gem
-      - name: Publish Platform Gems Only to RubyGems.org
+      # Push gems to rubygems.org
+      - name: Publish Gems to RubyGems.org
         run: |          
           for gem in pkg/*.gem; do
             echo "Pushing $gem..."
-            # Catch the error but verify if it's just a duplicate warning
-            gem push "$gem" || {
-              if gem inspect "$gem" | grep -q "0.2.0"; then
-                echo "Gem already exists on RubyGems, skipping..."
-              else
-                exit 1
-              fi
-            }
+            gem push "$gem"
           done

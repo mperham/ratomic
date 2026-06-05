@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "rbconfig"
+
 # Ratomic provides mutable data structures for Ruby Ractors. Its primitives
 # are backed by native Rust concurrency libraries so Ruby code can share useful
 # state across Ractors without falling back to one global lock. Pool uses Ruby
@@ -9,9 +11,23 @@
 module Ratomic
   # Base error class for Ratomic-specific failures.
   class Error < StandardError; end
+
+  def self.load_native_extension
+    ruby_version = RbConfig::CONFIG.fetch("ruby_version")
+    versioned_native = File.join("ratomic", ruby_version, "ratomic")
+    versioned_path = File.join(__dir__, "ratomic", ruby_version)
+
+    if File.exist?(File.join(versioned_path, "ratomic.so")) ||
+       File.exist?(File.join(versioned_path, "ratomic.bundle"))
+      require versioned_native
+    else
+      require "ratomic/ratomic"
+    end
+  end
+  private_class_method :load_native_extension
 end
 
-require "ratomic/ratomic"
+Ratomic.send(:load_native_extension)
 require "ratomic/version"
 
 require "ratomic/undefined"
