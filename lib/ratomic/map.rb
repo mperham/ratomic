@@ -5,8 +5,8 @@ module Ratomic
   #
   # Map gives Ruby code a small, Ruby-shaped API over DashMap's concurrent
   # storage. It is suitable for runtime state with shareable keys and values
-  # that are safe to access from multiple Ractors, such as counters or immutable
-  # offsets.
+  # that are safe to access from multiple Ractors, such as integer counters or
+  # immutable offsets.
   #
   # This is not a full Hash replacement. Iteration and arbitrary mutable object
   # borrowing are intentionally absent.
@@ -68,8 +68,10 @@ module Ratomic
   #   TODO: Revisit this name once the Map API settles. Prefer public method
   #   names that stay as close as possible to Ruby Hash semantics.
   #
-  #   The key must already exist. The operation is atomic for the key. If the
-  #   block raises, the previous value is preserved.
+  #   The key must already exist. The operation is atomic for the key. The block
+  #   runs while the map entry is locked, so avoid using this method for
+  #   Ractor-hot loops or calling back into the same map from inside the block.
+  #   If the block raises, the previous value is preserved.
   #
   #   @param key [Object]
   #   @yieldparam value [Object] current value
@@ -83,8 +85,10 @@ module Ratomic
   #   If +key+ exists, yields the current value. If +key+ is missing, yields
   #   nil. The block return value is stored and returned.
   #
-  #   The operation is atomic for the key. The block may run while the map entry
-  #   is locked, so avoid calling back into the same map from inside the block.
+  #   The operation is atomic for the key. The block runs while the map entry is
+  #   locked, so avoid using this method for Ractor-hot loops or calling back
+  #   into the same map from inside the block. Prefer native update helpers such
+  #   as #increment when they fit the workflow.
   #
   #   If the block raises, the previous value is preserved. If the key was
   #   missing, no entry is inserted.
@@ -102,8 +106,9 @@ module Ratomic
   #   is missing, yields once, stores the block return value, and returns it.
   #
   #   The operation is atomic for the key. Under contention, only one stored
-  #   value wins for a missing key. The block may run while the map entry is
-  #   locked, so avoid calling back into the same map from inside the block.
+  #   value wins for a missing key. The block runs while the map entry is locked,
+  #   so avoid using this method for Ractor-hot loops or calling back into the
+  #   same map from inside the block.
   #
   #   If the block raises, no entry is inserted.
   #
@@ -119,8 +124,10 @@ module Ratomic
   #   +key+ exists, yields the current value, stores the block return value, and
   #   returns it.
   #
-  #   The operation is atomic for the key. The block may run while the map entry
-  #   is locked, so avoid calling back into the same map from inside the block.
+  #   The operation is atomic for the key. The block runs while the map entry is
+  #   locked, so avoid using this method for Ractor-hot loops or calling back
+  #   into the same map from inside the block. Prefer native update helpers such
+  #   as #increment when they fit the workflow.
   #
   #   If the block raises, the previous value is preserved.
   #
@@ -135,7 +142,8 @@ module Ratomic
   #   Atomically increment the numeric value for +key+.
   #
   #   Missing keys start at zero. Existing non-numeric values raise TypeError
-  #   and are left unchanged.
+  #   and are left unchanged. This uses a native update path and is the preferred
+  #   counter primitive for Ractor-heavy workloads.
   #
   #   @param key [Object]
   #   @param by [Numeric]
@@ -211,7 +219,8 @@ module Ratomic
     # Atomically increment the numeric value for +key+.
     #
     # Missing keys start at zero. Existing non-numeric values raise TypeError
-    # and are left unchanged.
+    # and are left unchanged. This uses a native update path and is the preferred
+    # counter primitive for Ractor-heavy workloads.
     #
     # @param key [Object]
     # @param by [Numeric]
@@ -220,19 +229,7 @@ module Ratomic
     def increment(key, by = 1)
       raise TypeError, "amount must be numeric: #{by.inspect}" unless by.is_a?(Numeric)
 
-      missing = !key?(key)
-      compute(key) do |old_value|
-        if old_value.nil? && missing
-          by
-        else
-          unless old_value.is_a?(Numeric)
-            raise TypeError,
-                  "existing value for #{key.inspect} must be numeric: #{old_value.inspect}"
-          end
-
-          old_value + by
-        end
-      end
+      __increment_numeric(key, by)
     end
 
     # Atomically decrement the numeric value for +key+.

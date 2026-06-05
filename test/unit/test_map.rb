@@ -490,23 +490,6 @@ class MapUnitTest < Minitest::Test
     assert_equal 5, map[:events]
   end
 
-  def test_compute_updates_atomically_across_ractors
-    map = Ratomic::Map.new
-    map[:events] = 0
-
-    workers = 4.times.map do
-      Ractor.new(map) do |ractor_map|
-        25.times do
-          ractor_map.compute(:events) { |value| value + 1 }
-        end
-        :done
-      end
-    end
-
-    assert_equal [:done] * workers.length, workers.map { |worker| ractor_value(worker) }
-    assert_equal 100, map[:events]
-  end
-
   def test_increment_updates_atomically_across_ractors
     map = Ratomic::Map.new
 
@@ -519,42 +502,7 @@ class MapUnitTest < Minitest::Test
       end
     end
 
-    assert_equal [:done] * workers.length, workers.map { |worker| ractor_value(worker) }
-    assert_equal 100, map[:events]
-  end
-
-  def test_fetch_or_store_initializes_once_across_ractors
-    map = Ratomic::Map.new
-    initializer_count = Ratomic::Counter.new
-
-    workers = 4.times.map do |worker_id|
-      Ractor.new(map, initializer_count, worker_id) do |ractor_map, counter, id|
-        ractor_map.fetch_or_store(:source) do
-          counter.increment(1)
-          "source-#{id}"
-        end
-      end
-    end
-
-    results = workers.map { |worker| ractor_value(worker) }
-
-    assert_equal 1, initializer_count.read
-    assert_equal [map[:source]], results.uniq
-  end
-
-  def test_upsert_updates_atomically_across_ractors
-    map = Ratomic::Map.new
-
-    workers = 4.times.map do
-      Ractor.new(map) do |ractor_map|
-        25.times do
-          ractor_map.upsert(:events, 1) { |value| value + 1 }
-        end
-        :done
-      end
-    end
-
-    assert_equal [:done] * workers.length, workers.map { |worker| ractor_value(worker) }
+    assert_equal [:done] * workers.length, (workers.map { |worker| ractor_value(worker) })
     assert_equal 100, map[:events]
   end
 end

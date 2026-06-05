@@ -195,6 +195,45 @@ impl HashMap {
 
         Ok(unsafe { value_from_raw(raw) }.into_value_with(ruby))
     }
+
+    fn increment_numeric(
+        ruby: &Ruby,
+        rb_self: &Self,
+        key: Value,
+        by: Value,
+    ) -> Result<Value, Error> {
+        let key_inspect = key.funcall::<_, _, String>("inspect", ())?;
+        let numeric_class: RClass = ruby.class_object().const_get("Numeric")?;
+        let raw = rb_self.0.update(value_to_raw(key), |current| {
+            let next = match current {
+                Some(value) if value == qnil_raw() => {
+                    return Err(Error::new(
+                        ruby.exception_type_error(),
+                        format!("existing value for {key_inspect} must be numeric: nil"),
+                    ));
+                }
+                Some(value) => {
+                    let old_value = unsafe { value_from_raw(value) };
+                    if !old_value.funcall::<_, _, bool>("is_a?", (numeric_class,))? {
+                        let old_value_inspect = old_value.funcall::<_, _, String>("inspect", ())?;
+                        return Err(Error::new(
+                            ruby.exception_type_error(),
+                            format!(
+                                "existing value for {key_inspect} must be numeric: {old_value_inspect}"
+                            ),
+                        ));
+                    }
+
+                    old_value.funcall::<_, _, Value>("+", (by,))?
+                }
+                None => by,
+            };
+
+            Ok(value_to_raw(next))
+        })?;
+
+        Ok(unsafe { value_from_raw(raw) }.into_value_with(ruby))
+    }
 }
 
 impl DataTypeFunctions for HashMap {
@@ -470,6 +509,10 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     hashmap.define_method("compute", method!(HashMap::compute, 1))?;
     hashmap.define_method("fetch_or_store", method!(HashMap::fetch_or_store, 1))?;
     hashmap.define_method("upsert", method!(HashMap::upsert, 2))?;
+    hashmap.define_private_method(
+        "__increment_numeric",
+        method!(HashMap::increment_numeric, 2),
+    )?;
 
     let queue = root.define_class("Queue", ruby.class_object())?;
     queue.undef_default_alloc_func();

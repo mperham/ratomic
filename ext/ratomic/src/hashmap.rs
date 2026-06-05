@@ -79,6 +79,24 @@ impl MapStore {
         }
     }
 
+    pub fn update<F, E>(&self, key: VALUE, f: F) -> Result<VALUE, E>
+    where
+        F: FnOnce(Option<VALUE>) -> Result<VALUE, E>,
+    {
+        match self.map.entry(RubyHashEql(key)) {
+            Entry::Occupied(mut entry) => {
+                let new_value = f(Some(*entry.get()))?;
+                entry.insert(new_value);
+                Ok(new_value)
+            }
+            Entry::Vacant(entry) => {
+                let new_value = f(None)?;
+                entry.insert(new_value);
+                Ok(new_value)
+            }
+        }
+    }
+
     pub fn fetch_or_store<F, E>(&self, key: VALUE, f: F) -> Result<VALUE, E>
     where
         F: FnOnce() -> Result<VALUE, E>,
