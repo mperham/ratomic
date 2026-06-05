@@ -1,6 +1,15 @@
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-05
+
+- Promote the DashMap-backed `Ratomic::Map` API as the primary concurrent Hash primitive.
 - Add `Ratomic::Map#key?`, `#include?`, `#member?`, and `#delete`.
+- Add `Ratomic::Map#fetch`, `#compute`, `#fetch_or_store`, and `#upsert` for atomic per-key workflows.
+- Add `Ratomic::Map#increment`, `#decrement`, `#append`, and `#add_to_set` convenience methods for shared counters and bucket-style values.
+- Improve API documentation for `Counter`, `Map`, `Queue`, and `Pool`.
+- Add GitHub Pages deployment for generated YARD API documentation.
+- Add Redis POC scripts for exercising `Ratomic::Map`, `Ratomic::Counter`, and `Ratomic::Pool` under Thread and Ractor workloads.
+- Remove `Counter#inc` and `Counter#dec` in favor of the native `#increment` and `#decrement` methods.
 
 ## [0.2.1] - 2026-06-04
 
