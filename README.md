@@ -5,9 +5,7 @@
 [![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%204.0-ruby.svg)](https://www.ruby-lang.org/en/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Ratomic provides mutable data structures for Ruby Ractors. Its primitives are backed by native Rust concurrency libraries so Ruby code can share useful state across Ractors without falling back to one global lock.
-
-With the exception of `Pool`, Ratomic's primitives are focused on practical Ractor-safe shared-state data structures such as `Map`, `Counter`, and `Queue`.
+Ratomic provides mutable data structures for Ruby Ractors. With the exception of `Pool`, its primitives are backed by native Rust concurrency libraries so Ruby code can share useful state across Ractors without falling back to one global lock.
 
 ## Project Direction
 
