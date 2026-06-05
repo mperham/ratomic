@@ -96,8 +96,10 @@ jobs:
         platform:
           - x86_64-linux
           - aarch64-linux
-          - x86_64-darwin
+          # "You can't wall me Tim, I evolve!", exclaims Darwin
+          - x86_64-darwin 
           - arm64-darwin
+          # Darwin: 2, Tim: 0
           - x64-mingw-ucrt
 
     steps:
@@ -137,6 +139,13 @@ jobs:
           path: pkg/
           merge-multiple: true
 
+      - name: Smoke test packaged ruby gem
+        run: |
+          tmpdir=$(mktemp -d)
+          current_gem_path=$(ruby -e 'print Gem.path.join(":")')
+          gem install --local --force --install-dir "$tmpdir" pkg/ratomic-*.gem
+          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e 'require "ratomic"; puts Ratomic::VERSION'
+
       - name: Show gems for dry run
         run: find pkg -name "*.gem" -print | sort
 
@@ -172,6 +181,13 @@ jobs:
           path: pkg/
           merge-multiple: true
 
+      - name: Smoke test packaged ruby gem
+        run: |
+          tmpdir=$(mktemp -d)
+          current_gem_path=$(ruby -e 'print Gem.path.join(":")')
+          gem install --local --force --install-dir "$tmpdir" pkg/ratomic-*.gem
+          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e 'require "ratomic"; puts Ratomic::VERSION'
+
       # Authenticate with RubyGems via Trusted Publishing (OIDC)
       - name: Configure RubyGems Credentials
         uses: rubygems/configure-rubygems-credentials@v2.0.0
@@ -183,3 +199,6 @@ jobs:
             echo "Pushing $gem..."
             gem push "$gem"
           done
+
+      - name: Await RubyGems availability
+        run: timeout 300s gem exec rubygems-await -- pkg/*.gem || true

@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.3.3] - 2026-06-06
+
+- Fix `require "ratomic"` for installed gems by resolving the packaged native
+  extension layout directly.
+- Add a release smoke test that installs the built gem artifact into a clean
+  gem home before publishing.
+
 ## [0.3.2] - 2026-06-06
 
 - Fix `require "ratomic"` for installed gems by resolving the versioned native

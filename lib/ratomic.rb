@@ -13,13 +13,10 @@ module Ratomic
   class Error < StandardError; end
 
   def self.load_native_extension
-    ruby_version = RbConfig::CONFIG.fetch("ruby_version")
-    versioned_native = File.join("ratomic", ruby_version, "ratomic")
-    versioned_path = File.join(__dir__, "ratomic", ruby_version)
+    packaged_native = Dir[File.join(__dir__, "ratomic", "*", "ratomic.{so,bundle}")].min
 
-    if File.exist?(File.join(versioned_path, "ratomic.so")) ||
-       File.exist?(File.join(versioned_path, "ratomic.bundle"))
-      require versioned_native
+    if packaged_native
+      require packaged_native.sub(/\.(so|bundle)\z/, "")
     else
       require "ratomic/ratomic"
     end
