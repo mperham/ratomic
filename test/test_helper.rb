@@ -6,11 +6,16 @@ require "support/simplecov" unless defined?(SimpleCov)
 require "ratomic"
 
 require "minitest/autorun"
+require "timeout"
 
 module RactorTestHelpers
-  def ractor_value(ractor)
-    ractor.join if ractor.respond_to?(:join)
-    ractor.value
+  RACTOR_TIMEOUT = 10
+
+  def ractor_value(ractor, timeout: RACTOR_TIMEOUT)
+    Timeout.timeout(timeout, "Ractor did not finish within #{timeout} seconds") do
+      ractor.join if ractor.respond_to?(:join)
+      ractor.value
+    end
   end
 
   def poll_ractor_value(ractor, attempts: 50, delay: 0.01)
