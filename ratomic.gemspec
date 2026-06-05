@@ -9,15 +9,16 @@ Gem::Specification.new do |spec|
   spec.email = ["mike@perham.net"]
   spec.metadata["maintainers"] = "Ken C. Demanawa"
 
-  spec.summary = "Mutable data structures for Ractors"
-  spec.description = spec.summary
-  spec.homepage = "https://github.com/mperham/ratomic"
+  spec.summary = "Ractor-safe concurrent data structures for Ruby"
+  spec.description = "Ractor-safe counters, maps, queues, and ownership-transfer pools " \
+                     "backed by native Rust concurrency primitives."
+  spec.homepage = "https://mperham.github.io/ratomic"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 4.0.0"
+  spec.required_ruby_version = [">= 4.0", "< 4.1.dev"]
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/mperham/ratomic"
-  spec.metadata["changelog_uri"] = "https://github.com/mperham/ratomic"
+  spec.metadata["changelog_uri"] = "https://github.com/mperham/ratomic/blob/trunk/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.

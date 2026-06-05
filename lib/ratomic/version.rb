@@ -6,5 +6,5 @@
 # The public API currently includes {Counter}, {Map}, {Queue}, and {Pool}.
 module Ratomic
   # Current gem version.
-  VERSION = "0.2.1"
+  VERSION = "0.3.0"
 end
