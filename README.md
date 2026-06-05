@@ -38,6 +38,8 @@ API documentation is published to GitHub Pages:
 
 - [mperham.github.io/ratomic](https://mperham.github.io/ratomic/)
 
+RBS signatures are included under `sig/` for downstream type checking.
+
 ## Examples And Benchmarks
 
 - [`redis_poc`](./redis_poc) contains local Redis scripts that exercise
@@ -224,11 +226,15 @@ Please read the [Code of Conduct](./CODE_OF_CONDUCT.md) before contributing.
 After changing code, run:
 
 ```bash
-rake
+bundle exec rake
 ```
 
 This compiles the Rust code and runs the test suite. The test suite writes a
 SimpleCov report to `coverage/index.html` for the Ruby wrapper paths.
+
+If you change the public Ruby API, update the curated RBS signatures under
+`sig/ratomic.rbs` and run `bundle exec rake rbs:validate` before release or
+review.
 
 ## Thanks
 

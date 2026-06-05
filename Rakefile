@@ -40,6 +40,13 @@ end
 
 task build: :compile
 
+namespace :rbs do
+  desc "Validate the curated RBS signatures"
+  task :validate do
+    sh("bundle", "exec", "rbs", "validate", "sig/ratomic.rbs")
+  end
+end
+
 namespace :gem do
   task :native_current do
     platform = ENV.fetch("RUBY_TARGET")

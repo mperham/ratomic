@@ -32,6 +32,7 @@ Gem::Specification.new do |spec|
     "ratomic.gemspec"
   ] + Dir[
     "lib/**/*.rb",
+    "sig/**/*.rbs",
     "ext/ratomic/Cargo.toml",
     "ext/ratomic/build.rs",
     "ext/ratomic/extconf.rb",

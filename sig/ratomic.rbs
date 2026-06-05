@@ -1,0 +1,73 @@
+module Ratomic
+  class Error < ::StandardError
+  end
+
+  class Undefined
+    def inspect: () -> String
+  end
+
+  VERSION: String
+  UNDEFINED: Undefined
+
+  class Counter
+    def self.new: () -> Counter
+
+    def read: () -> Integer
+    def value: () -> Integer
+    def to_i: () -> Integer
+    def zero?: () -> bool
+    def increment: (Numeric amt) -> Integer
+    def decrement: (Numeric amt) -> Integer
+  end
+
+  class Map
+    def self.new: () -> Map
+
+    def get: (untyped key) -> untyped
+    def []: (untyped key) -> untyped
+    def set: (untyped key, untyped value) -> untyped
+    def []=: (untyped key, untyped value) -> untyped
+    def key?: (untyped key) -> bool
+    def include?: (untyped key) -> bool
+    def member?: (untyped key) -> bool
+    def delete: (untyped key) -> untyped
+    def clear: () -> self
+    def size: () -> Integer
+    def length: () -> Integer
+    def empty?: () -> bool
+
+    def fetch: (untyped key) { (untyped) -> untyped } -> untyped
+             | (untyped key, untyped default) -> untyped
+             | (untyped key) -> untyped
+
+    def fetch_and_modify: (untyped key) { (untyped) -> untyped } -> void
+    def compute: (untyped key) { (untyped?) -> untyped } -> untyped
+    def fetch_or_store: (untyped key) { () -> untyped } -> untyped
+    def upsert: (untyped key, untyped initial) { (untyped?) -> untyped } -> untyped
+    def increment: (untyped key, ?Numeric by) -> Numeric
+    def decrement: (untyped key, ?Numeric by) -> Numeric
+    def append: (untyped key, untyped value) -> Array[untyped]
+    def add_to_set: (untyped key, untyped value) -> ::Set[untyped]
+  end
+
+  class Queue
+    def self.new: (Integer capacity) -> Queue
+
+    def push: (untyped item) -> self
+    def <<: (untyped item) -> self
+    def pop: () -> untyped
+    def peek: () -> untyped
+    def empty?: () -> bool
+    def size: () -> Integer
+    def length: () -> Integer
+  end
+
+  class Pool
+    def self.new: (?Integer size, ?(Numeric | nil) timeout) { () -> untyped } -> Pool
+
+    def checkout: () -> untyped
+    def checkin: (untyped object) -> nil
+    def close: () -> nil
+    def with: () { (untyped object) -> untyped } -> untyped
+  end
+end
