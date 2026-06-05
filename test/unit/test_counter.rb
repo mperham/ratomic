@@ -15,9 +15,9 @@ class CounterUnitTest < Minitest::Test
   def test_increment_and_decrement_return_to_zero
     counter = Ratomic::Counter.new
 
-    counter.increment(5)
-    counter.decrement(2)
-    counter.decrement(3)
+    assert_equal 5, counter.increment(5)
+    assert_equal 3, counter.decrement(2)
+    assert_equal 0, counter.decrement(3)
 
     assert_equal 0, counter.read
     assert_predicate counter, :zero?

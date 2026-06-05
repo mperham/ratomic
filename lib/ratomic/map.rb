@@ -22,15 +22,27 @@ module Ratomic
   #   Missing keys return nil, so use #key? or #fetch when stored nil values
   #   need to be distinguished from missing entries.
   #
-  #   @param key [Object]
-  #   @return [Object, nil]
+  #   @param key [Object] lookup key
+  #   @return [Object, nil] the stored value, or nil when the key is missing
   #
   # @!method set(key, value)
   #   Set a value for +key+.
   #
-  #   @param key [Object]
-  #   @param value [Object]
-  #   @return [void]
+  #   This is the method behind `#[]=` and follows Ruby setter semantics by
+  #   returning the assigned value.
+  #
+  #   @param key [Object] key to write
+  #   @param value [Object] value to store
+  #   @return [Object] the assigned value
+  #
+  # @!method []=(key, value)
+  #   Set a value for +key+.
+  #
+  #   In assignment form, Ruby returns the value assigned to the expression.
+  #
+  #   @param key [Object] key to write
+  #   @param value [Object] value to store
+  #   @return [Object] the assigned value
   #
   # @!method key?(key)
   #   Check whether +key+ currently exists in the map.
@@ -38,8 +50,8 @@ module Ratomic
   #   Unlike #get and #[], this distinguishes missing keys from stored nil
   #   values.
   #
-  #   @param key [Object]
-  #   @return [Boolean]
+  #   @param key [Object] lookup key
+  #   @return [Boolean] true when the key currently exists
   #
   # @!method delete(key)
   #   Remove +key+ and return its previous value.
@@ -47,20 +59,20 @@ module Ratomic
   #   Missing keys return nil. Stored nil values also return nil; use #key?
   #   before deleting if that distinction matters.
   #
-  #   @param key [Object]
-  #   @return [Object, nil]
+  #   @param key [Object] key to remove
+  #   @return [Object, nil] the previous value, or nil when the key was missing
   #
   # @!method clear
   #   Remove all entries from the map.
   #
-  #   @return [void]
+  #   @return [Ratomic::Map] self
   #
   # @!method size
   #   Return the current number of entries.
   #
   #   Since this is a concurrent map, the value is a moment-in-time observation.
   #
-  #   @return [Integer]
+  #   @return [Integer] the current number of entries
   #
   # @!method fetch_and_modify(key)
   #   Replace the existing value for +key+ with the block return value.
@@ -73,9 +85,9 @@ module Ratomic
   #   Ractor-hot loops or calling back into the same map from inside the block.
   #   If the block raises, the previous value is preserved.
   #
-  #   @param key [Object]
-  #   @yieldparam value [Object] current value
-  #   @return [void]
+  #   @param key [Object] key to modify in place
+  #   @yieldparam value [Object] the current stored value
+  #   @return [void] nothing useful is returned
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
   #
@@ -93,8 +105,8 @@ module Ratomic
   #   If the block raises, the previous value is preserved. If the key was
   #   missing, no entry is inserted.
   #
-  #   @param key [Object]
-  #   @yieldparam value [Object, nil] current value, or nil if missing
+  #   @param key [Object] key to compute
+  #   @yieldparam value [Object, nil] the current stored value, or nil when missing
   #   @return [Object] the newly stored value
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
@@ -112,7 +124,7 @@ module Ratomic
   #
   #   If the block raises, no entry is inserted.
   #
-  #   @param key [Object]
+  #   @param key [Object] key to read or initialize
   #   @return [Object] the existing or newly stored value
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
@@ -131,9 +143,9 @@ module Ratomic
   #
   #   If the block raises, the previous value is preserved.
   #
-  #   @param key [Object]
-  #   @param initial [Object]
-  #   @yieldparam value [Object, nil] current value
+  #   @param key [Object] key to update
+  #   @param initial [Object] value to use when the key is missing
+  #   @yieldparam value [Object, nil] the current stored value, or nil when missing
   #   @return [Object] the inserted or newly stored value
   #   @raise [LocalJumpError] if no block is given
   #   @raise [Exception] any exception raised by the block
@@ -145,8 +157,8 @@ module Ratomic
   #   and are left unchanged. This uses a native update path and is the preferred
   #   counter primitive for Ractor-heavy workloads.
   #
-  #   @param key [Object]
-  #   @param by [Numeric]
+  #   @param key [Object] counter key to increment
+  #   @param by [Numeric] amount to add
   #   @return [Numeric] the newly stored value
   #   @raise [TypeError] if +by+ or the existing value is not numeric
   #
@@ -155,8 +167,8 @@ module Ratomic
   #
   #   Missing keys start at zero.
   #
-  #   @param key [Object]
-  #   @param by [Numeric]
+  #   @param key [Object] counter key to decrement
+  #   @param by [Numeric] amount to subtract
   #   @return [Numeric] the newly stored value
   #   @raise [TypeError] if +by+ or the existing value is not numeric
   #
@@ -165,8 +177,8 @@ module Ratomic
   #
   #   The stored Array is replaced rather than mutated in place.
   #
-  #   @param key [Object]
-  #   @param value [Object]
+  #   @param key [Object] bucket key to append into
+  #   @param value [Object] value to append
   #   @return [Array] the newly stored frozen Array
   #   @raise [TypeError] if the existing value is not an Array
   #
@@ -175,16 +187,18 @@ module Ratomic
   #
   #   The stored Set is replaced rather than mutated in place.
   #
-  #   @param key [Object]
-  #   @param value [Object]
+  #   @param key [Object] bucket key to update
+  #   @param value [Object] value to add to the set
   #   @return [Set] the newly stored frozen Set
   #   @raise [TypeError] if the existing value is not a Set
   class Map
     # Set a value for +key+.
     #
-    # @param key [Object]
-    # @param value [Object]
-    # @return [void]
+    # In assignment form, Ruby returns the assigned value.
+    #
+    # @param key [Object] key to write
+    # @param value [Object] value to store
+    # @return [Object] the assigned value
     def []=(key, value)
       set(key, value)
     end
@@ -193,8 +207,8 @@ module Ratomic
     #
     # Missing keys currently return nil, so storing nil is ambiguous.
     #
-    # @param key [Object]
-    # @return [Object, nil]
+    # @param key [Object] lookup key
+    # @return [Object, nil] the stored value, or nil when the key is missing
     def [](key)
       get(key)
     end
@@ -203,10 +217,10 @@ module Ratomic
     #
     # Unlike #[], this distinguishes missing keys from explicit nil values.
     #
-    # @param key [Object]
-    # @param default [Object]
-    # @yieldparam key [Object]
-    # @return [Object]
+    # @param key [Object] lookup key
+    # @param default [Object] fallback value to return when the key is missing
+    # @yieldparam key [Object] the missing key
+    # @return [Object] the found value, default, or block result
     # @raise [KeyError] if +key+ is missing and no default or block is provided
     def fetch(key, default = UNDEFINED)
       return get(key) if key?(key)
@@ -222,8 +236,8 @@ module Ratomic
     # and are left unchanged. This uses a native update path and is the preferred
     # counter primitive for Ractor-heavy workloads.
     #
-    # @param key [Object]
-    # @param by [Numeric]
+    # @param key [Object] counter key to increment
+    # @param by [Numeric] amount to add
     # @return [Numeric] the newly stored value
     # @raise [TypeError] if +by+ or the existing value is not numeric
     def increment(key, by = 1)
@@ -236,8 +250,8 @@ module Ratomic
     #
     # Missing keys start at zero.
     #
-    # @param key [Object]
-    # @param by [Numeric]
+    # @param key [Object] counter key to decrement
+    # @param by [Numeric] amount to subtract
     # @return [Numeric] the newly stored value
     # @raise [TypeError] if +by+ or the existing value is not numeric
     def decrement(key, by = 1)
@@ -250,8 +264,8 @@ module Ratomic
     #
     # The stored Array is replaced rather than mutated in place.
     #
-    # @param key [Object]
-    # @param value [Object]
+    # @param key [Object] bucket key to append into
+    # @param value [Object] value to append
     # @return [Array] the newly stored frozen Array
     # @raise [TypeError] if the existing value is not an Array
     def append(key, value)
@@ -274,8 +288,8 @@ module Ratomic
     #
     # The stored Set is replaced rather than mutated in place.
     #
-    # @param key [Object]
-    # @param value [Object]
+    # @param key [Object] bucket key to update
+    # @param value [Object] value to add to the set
     # @return [Set] the newly stored frozen Set
     # @raise [TypeError] if the existing value is not a Set
     def add_to_set(key, value)
@@ -296,22 +310,22 @@ module Ratomic
 
     # Alias for #size.
     #
-    # @return [Integer]
+    # @return [Integer] the current number of entries
     def length
       size
     end
 
     # Check whether the map currently has no entries.
     #
-    # @return [Boolean]
+    # @return [Boolean] true when the map currently has no entries
     def empty?
       size.zero?
     end
 
     # Alias for #key?.
     #
-    # @param key [Object]
-    # @return [Boolean]
+    # @param key [Object] lookup key
+    # @return [Boolean] true when the key currently exists
     def include?(key)
       key?(key)
     end

@@ -28,9 +28,9 @@ module Ratomic
   class Pool
     # Create a pool and seed it with +size+ objects from the factory block.
     #
-    # @param size [Integer] number of pooled objects
+    # @param size [Integer] number of pooled objects to create up front
     # @param timeout [Numeric, nil] checkout timeout in seconds, or nil to wait indefinitely
-    # @yieldreturn [Object] mutable object to store in the pool
+    # @yieldreturn [Object] a mutable object to place into the pool
     # @raise [ArgumentError] if +size+ is not positive
     # @raise [LocalJumpError] if no factory block is given
     def initialize(size = 5, timeout = 1.0)
@@ -49,7 +49,7 @@ module Ratomic
     # The returned object has been moved from the pool to the caller. The caller
     # owns it until it is passed to #checkin.
     #
-    # @return [Object, nil] pooled object, or nil after timeout
+    # @return [Object, nil] the checked-out object, or nil if the timeout expires
     def checkout
       reply = Ractor::Port.new
       request_id = reply.object_id
@@ -68,8 +68,8 @@ module Ratomic
     # use the object after calling this method; Ruby raises Ractor::MovedError
     # for stale references.
     #
-    # @param object [Object] previously checked-out pooled object
-    # @return [nil]
+    # @param object [Object] the object previously checked out from the pool
+    # @return [nil] nothing useful is returned
     def checkin(object)
       @control.send([:checkin, object], move: true)
       nil
@@ -80,7 +80,7 @@ module Ratomic
     # This is primarily useful for tests and short-lived scripts. A closed pool
     # should not be used for further checkout/checkin operations.
     #
-    # @return [nil]
+    # @return [nil] nothing useful is returned
     def close
       @control << [:shutdown]
       @control.value
@@ -94,9 +94,9 @@ module Ratomic
     # This is the preferred API because it guarantees checkin through an ensure
     # block. If checkout times out, raises Ratomic::Error and does not yield.
     #
-    # @yieldparam object [Object] checked-out pooled object
+    # @yieldparam object [Object] the object checked out from the pool
     # @raise [Ratomic::Error] if checkout times out
-    # @return [Object] block return value
+    # @return [Object] the block return value
     def with
       object = checkout
       raise Ratomic::Error, "pool checkout timeout" if object.nil?

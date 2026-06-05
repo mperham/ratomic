@@ -4,7 +4,9 @@ module Ratomic
   # Internal sentinel object for future Hash-like APIs that need to distinguish
   # missing keys from explicit nil values.
   class Undefined
-    # @return [String]
+    # Return the sentinel's stable inspection string.
+    #
+    # @return [String] a human-readable sentinel marker
     def inspect
       "#<Undefined>"
     end

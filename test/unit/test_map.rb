@@ -17,15 +17,15 @@ class MapUnitTest < Minitest::Test
   def test_set_get_and_clear
     map = Ratomic::Map.new
 
-    map[:source] = "postgres"
-    map.set(:offset, 42)
+    assert_equal "postgres", (map[:source] = "postgres")
+    assert_equal 42, map.set(:offset, 42)
 
     assert_equal "postgres", map[:source]
     assert_equal 42, map.get(:offset)
     assert_equal 2, map.length
     refute_predicate map, :empty?
 
-    map.clear
+    assert_same map, map.clear
 
     assert_nil map[:source]
     assert_predicate map, :empty?
@@ -502,7 +502,9 @@ class MapUnitTest < Minitest::Test
       end
     end
 
-    assert_equal [:done] * workers.length, (workers.map { |worker| ractor_value(worker) })
+    results = workers.map { |worker| ractor_value(worker) }
+
+    assert_equal [:done] * workers.length, results
     assert_equal 100, map[:events]
   end
 end

@@ -46,12 +46,14 @@ impl Counter {
         make_shareable(ruby, value)
     }
 
-    fn increment(&self, amt: u64) {
+    fn increment(&self, amt: u64) -> u64 {
         self.0.inc(amt);
+        self.0.read()
     }
 
-    fn decrement(&self, amt: u64) {
+    fn decrement(&self, amt: u64) -> u64 {
         self.0.dec(amt);
+        self.0.read()
     }
 
     fn read(&self) -> u64 {
@@ -100,8 +102,9 @@ impl HashMap {
         self.0.contains_key(value_to_raw(key))
     }
 
-    fn set(&self, key: Value, value: Value) {
+    fn set(&self, key: Value, value: Value) -> Value {
         self.0.set(value_to_raw(key), value_to_raw(value));
+        value
     }
 
     fn delete(ruby: &Ruby, rb_self: &Self, key: Value) -> Value {
@@ -109,8 +112,10 @@ impl HashMap {
         unsafe { value_from_raw(raw) }.into_value_with(ruby)
     }
 
-    fn clear(&self) {
-        self.0.clear();
+    fn clear(_ruby: &Ruby, value: Value) -> Result<Value, Error> {
+        let rb_self: &Self = TryConvert::try_convert(value)?;
+        rb_self.0.clear();
+        Ok(value)
     }
 
     fn size(&self) -> usize {
@@ -307,9 +312,10 @@ impl Queue {
         make_shareable(ruby, value)
     }
 
-    fn push(&self, item: Value) {
+    fn push(ruby: &Ruby, rb_self: Value, item: Value) -> Result<Value, Error> {
+        let queue: &Self = TryConvert::try_convert(rb_self)?;
         let mut payload = PushPayload {
-            queue: &self.0,
+            queue: &queue.0,
             item: value_to_raw(item),
         };
         unsafe {
@@ -320,6 +326,7 @@ impl Queue {
                 std::ptr::null_mut(),
             );
         }
+        Ok(rb_self.into_value_with(ruby))
     }
 
     fn pop(&self) -> Value {

@@ -16,7 +16,7 @@ class QueueUnitTest < Minitest::Test
     queue = Ratomic::Queue.new(4)
 
     assert_same queue, queue << :first
-    queue.push(:second)
+    assert_same queue, queue.push(:second)
 
     assert_equal 2, queue.size
     assert_equal :first, queue.peek
@@ -29,13 +29,13 @@ class QueueUnitTest < Minitest::Test
   def test_non_power_of_two_capacity_preserves_fifo_order
     queue = Ratomic::Queue.new(3)
 
-    queue.push(:first)
-    queue.push(:second)
-    queue.push(:third)
+    assert_same queue, queue.push(:first)
+    assert_same queue, queue.push(:second)
+    assert_same queue, queue.push(:third)
 
     assert_equal :first, queue.pop
 
-    queue.push(:fourth)
+    assert_same queue, queue.push(:fourth)
 
     assert_equal :second, queue.pop
     assert_equal :third, queue.pop
