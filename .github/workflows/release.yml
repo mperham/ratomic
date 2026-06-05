@@ -20,9 +20,6 @@ on:
 permissions:
   contents: read
 
-env:
-  RUST_MIN_STACK: "33554432"
-
 concurrency:
   group: gem-release-${{ github.ref_name }}
   cancel-in-progress: false
@@ -143,7 +140,7 @@ jobs:
         run: |
           tmpdir=$(mktemp -d)
           current_gem_path=$(ruby -e 'print Gem.path.join(":")')
-          gem install --local --force --install-dir "$tmpdir" pkg/ratomic-*.gem
+          gem install --local --force --install-dir "$tmpdir" pkg/ratomic*x86_64-linux.gem
           GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e 'require "ratomic"; puts Ratomic::VERSION'
 
       - name: Show gems for dry run
@@ -185,7 +182,7 @@ jobs:
         run: |
           tmpdir=$(mktemp -d)
           current_gem_path=$(ruby -e 'print Gem.path.join(":")')
-          gem install --local --force --install-dir "$tmpdir" pkg/ratomic-*.gem
+          gem install --local --force --install-dir "$tmpdir" pkg/ratomic*x86_64-linux.gem
           GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e 'require "ratomic"; puts Ratomic::VERSION'
 
       # Authenticate with RubyGems via Trusted Publishing (OIDC)
