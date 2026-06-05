@@ -12,9 +12,6 @@ Ratomic provides mutable data structures for Ruby Ractors. Its primitives are ba
 Ratomic focuses on practical Ractor-safe primitives with a small API surface, clear
 ownership semantics, and honest documentation about sharp edges.
 
-`Ratomic::Map` is the current priority: a Ruby-facing concurrent Hash powered by
-DashMap, with atomic per-key operations designed for real Ractor workloads.
-
 ## Requirements
 
 - Ruby 4.0 or newer
@@ -84,9 +81,10 @@ counter.zero? # => false
 
 ### `Ratomic::Map`
 
-`Ratomic::Map` is a Ractor-safe concurrent Hash backed by Rust's DashMap. It is
-not a full `Hash` replacement; iteration and arbitrary mutable object borrowing
-are intentionally absent.
+`Ratomic::Map` is the primary Ractor-safe concurrent Hash primitive in Ratomic.
+It is backed by Rust's DashMap and provides atomic per-key operations for real
+Ractor workloads. It is not a full `Hash` replacement; iteration and arbitrary
+mutable object borrowing are intentionally absent.
 
 ```ruby
 OFFSETS = Ratomic::Map.new
