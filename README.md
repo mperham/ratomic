@@ -2,180 +2,249 @@
 
 [![Gem Version](https://badge.fury.io/rb/ratomic.svg)](https://badge.fury.io/rb/ratomic)
 [![CI](https://github.com/mperham/ratomic/workflows/CI/badge.svg)](https://github.com/mperham/ratomic/actions)
-[![Coverage Status](https://codecov.io/gh/mperham/ratomic/branch/main/graph/badge.svg)](https://codecov.io/gh/mperham/ratomic)
 [![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%204.0-ruby.svg)](https://www.ruby-lang.org/en/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+Ratomic provides mutable data structures for Ruby Ractors. Its primitives are backed by
+native Rust concurrency libraries so Ruby code can share useful state across Ractors
+without falling back to one global lock.
 
-Ratomic provides mutable data structures for use with Ruby's Ractors.
-This allows Ruby code to scale beyond the infamous GVL.
+## Project Direction
 
-# HELP WANTED!
+Ratomic focuses on practical Ractor-safe primitives with a small API surface, clear
+ownership semantics, and honest documentation about sharp edges.
 
-> If you know Rust and Ruby C-extensions, we need your help!
-> This project is brand new and could use your knowledge!
-> If you don't know Rust or C, consider this a challenge to learn and solve.
-> Read through the [issues](//github.com/mperham/ratomic/issues) to find work that sounds interesting to you.
+`Ratomic::Map` is the current priority: a Ruby-facing concurrent Hash powered by
+DashMap, with atomic per-key operations designed for real Ractor workloads.
 
-## How to contribute
+## Requirements
 
-Please make sure to understand our [Code of Conduct](./CODE_OF_CONDUCT.md).
-
-After changing code, you can give it a spin with:
-
-```bash
-rake
-```
-
-This should compile the Rust code and run all tests.
-The test suite writes a SimpleCov report to `coverage/index.html` so you can see which Ruby wrapper paths are covered.
+- Ruby 4.0 or newer
+- Bundler
+- Rust toolchain when building the native extension from source
 
 ## Installation
 
-Install the gem and add to the application's Gemfile by executing:
+Add Ratomic to your application's Gemfile:
 
 ```bash
 bundle add ratomic
 ```
 
+Then require it from Ruby:
+
+```ruby
+require "ratomic"
+```
+
+## Documentation
+
+API documentation is published to GitHub Pages:
+
+- [mperham.github.io/ratomic](https://mperham.github.io/ratomic/)
+
+## Examples And Benchmarks
+
+- [`redis_poc`](./redis_poc) contains local Redis scripts that exercise
+  `Ratomic::Map`, `Ratomic::Counter`, and `Ratomic::Pool` under Thread and
+  Ractor workloads.
+- The [`cdc-parallel` Ratomic benchmark][cdc-parallel-ratomic] demonstrates
+  Ractor workers updating shared CDC processing metrics through `Ratomic::Map`
+  and `Ratomic::Counter`.
+
 ## Usage
 
-Ratomic provides several useful Ractor-safe structures.
-Note the APIs available are frequently very limited compared to Ruby's broad API.
+Ratomic provides two safety models:
 
-These structures are designed for use as class-level constants so they can be shared by numerous Ractors.
+- `Counter`, `Map`, and `Queue` are shared concurrent structures.
+- `Pool` transfers ownership of mutable objects between Ractors.
 
-Ratomic has two different safety models:
+That distinction matters. A mutable pooled object is not shared by multiple Ractors
+at the same time. It is moved to the caller on checkout and moved back to the pool
+on checkin.
 
-* `Counter`, `Map`, and `Queue` are shared concurrent structures.
-* `Pool` transfers ownership of mutable objects between Ractors.
-
-That distinction matters. A mutable pooled object is not shared by multiple Ractors at the same time. It is moved to the caller on checkout and moved back to the pool on checkin.
+These structures are designed for use as class-level constants so they can be
+shared by many Ractors.
 
 ### `Ratomic::Counter`
 
+`Ratomic::Counter` is a Ractor-shareable atomic counter.
+
 ```ruby
-c = Ratomic::Counter.new
-c.read # => 0
-c.inc
-c.inc(5)
-c.dec(1)
-c.dec
-c.read # => 4
-c.to_i # => 4
-c.zero? # => false
+counter = Ratomic::Counter.new
+
+counter.read # => 0
+counter.increment(1)
+counter.increment(5)
+counter.decrement(1)
+counter.decrement(1)
+
+counter.read # => 4
+counter.to_i # => 4
+counter.zero? # => false
 ```
+
+### `Ratomic::Map`
+
+`Ratomic::Map` is a Ractor-safe concurrent Hash backed by Rust's DashMap. It is
+not a full `Hash` replacement; iteration and arbitrary mutable object borrowing
+are intentionally absent.
+
+```ruby
+OFFSETS = Ratomic::Map.new
+
+OFFSETS["mike"] = 123
+OFFSETS["mike"] # => 123
+OFFSETS.key?("mike") # => true
+OFFSETS.fetch("missing", 0) # => 0
+
+OFFSETS.fetch_or_store("count") { 0 } # => 0
+OFFSETS.compute("mike") { |value| value + 1 } # => 124
+OFFSETS.upsert("mike", 1) { |value| value + 1 } # => 125
+OFFSETS.fetch_and_modify("mike") { |value| value + 1 }
+
+OFFSETS.delete("mike") # => 126
+OFFSETS.length
+OFFSETS.empty?
+OFFSETS.clear
+```
+
+`Map` also includes atomic convenience methods for common bucket patterns:
+
+```ruby
+counts = Ratomic::Map.new
+counts.increment("jobs") # => 1
+counts.decrement("jobs") # => 0
+
+groups = Ratomic::Map.new
+groups.append("jobs", "import") # => ["import"]
+groups.add_to_set("workers", "alpha") # => #<Set: {"alpha"}>
+```
+
+### `Ratomic::Queue`
+
+`Ratomic::Queue` is a Ractor-shareable multi-producer, multi-consumer queue.
+
+```ruby
+queue = Ratomic::Queue.new(128)
+
+queue.push("hello")
+queue << "world"
+
+queue.size # => 2
+queue.empty? # => false
+queue.peek # => "hello"
+queue.pop # => "hello"
+queue.pop # => "world"
+queue.empty? # => true
+```
+
+The `.new(capacity)` method initializes the queue with a fixed-size buffer.
+Capacity must be at least `1` and at most `2**20`. Non-power-of-two capacities
+are supported exactly.
+
+Since `Ratomic::Queue` is concurrent, `size`, `empty?`, and `peek` are
+moment-in-time observations. Their results may already be stale by the time your
+code uses them.
 
 ### `Ratomic::Pool`
 
-A Ractor-safe object pool:
+`Ratomic::Pool` is a Ractor-safe ownership-transfer pool for mutable Ruby objects.
 
 ```ruby
-POOL = Ratomic::Pool.new(5, 1.0) { [] }
-POOL.with do |obj|
-  # do something with obj
-  obj << "work"
+BUFFERS = Ratomic::Pool.new(5, 1.0) { [] }
+
+BUFFERS.with do |buffer|
+  buffer.clear
+  buffer << "work"
 end
 ```
 
-`Pool` is an ownership-transfer pool for mutable Ruby objects. It uses Ruby 4's `Ractor::Port` and `move: true` semantics so only one Ractor owns a checked-out object at a time.
-
-This design addresses [issue #5](https://github.com/mperham/ratomic/issues/5), where using a pooled object after `with` could lead to memory corruption or a process crash. The fix is Rust-inspired ownership transfer, not Rust's full borrow checker: Ruby enforces the boundary dynamically at runtime through Ractor move semantics, while Rust enforces ownership and borrowing statically at compile time.
-
-In that model:
-
-* the Rust owner maps to the Ractor that currently checked out the pooled object
-* the Rust move maps to `Ractor::Port#send(..., move: true)`
-* Rust's "cannot use after move" rule maps to Ruby raising `Ractor::MovedError`
-* borrowing is not modeled; `Pool` transfers ownership instead of lending references
+`Pool` uses Ruby 4's `Ractor::Port` and `move: true` semantics so only one
+Ractor owns a checked-out object at a time.
 
 When an object is checked out:
 
-* the pool moves the object to the caller
-* the caller can mutate the object while it owns it
-* the pool cannot hand that object to another Ractor until it is checked in
+- the pool moves the object to the caller
+- the caller can mutate the object while it owns it
+- the pool cannot hand that object to another Ractor until it is checked in
 
 When an object is checked in:
 
-* ownership moves back to the pool
-* stale references held by the caller become moved objects
-* using those stale references raises `Ractor::MovedError`
+- ownership moves back to the pool
+- stale references held by the caller become moved objects
+- using those stale references raises `Ractor::MovedError`
 
-This means incorrect usage fails at the Ruby object-ownership boundary rather than allowing two Ractors to mutate the same object concurrently.
+This means incorrect usage fails at the Ruby object-ownership boundary rather
+than allowing two Ractors to mutate the same object concurrently.
 
 ```ruby
 outside = nil
 
-POOL.with do |obj|
-  outside = obj
-  obj << "inside"
+BUFFERS.with do |buffer|
+  outside = buffer
+  buffer << "inside"
 end
 
 outside << "outside"
 # raises Ractor::MovedError
 ```
 
-The lower-level `Ratomic::FixedSizeObjectPool` native class may still exist, but `Ratomic::Pool` does not inherit from it. The public `Pool` API is implemented in Ruby so it can use Ruby's Ractor ownership primitives directly.
-
-Manual checkout/checkin is also supported:
+Manual checkout and checkin are also supported:
 
 ```ruby
-obj = POOL.checkout
-raise "pool checkout timeout" if obj.nil?
+buffer = BUFFERS.checkout
+raise "pool checkout timeout" if buffer.nil?
 
 begin
-  obj << "manual work"
+  buffer << "manual work"
 ensure
-  POOL.checkin(obj) if obj
+  BUFFERS.checkin(buffer) if buffer
 end
 ```
 
-`checkout` returns `nil` if no pooled object becomes available before the configured timeout. `with` raises `Ratomic::Error` in that case.
+`checkout` returns `nil` if no pooled object becomes available before the
+configured timeout. `with` raises `Ratomic::Error` in that case.
 
-### `Ratomic::Map`
+`Pool` uses ownership transfer, not Rust's full borrow checker:
 
-A Ractor-safe map/hash structure:
+- the Rust owner maps to the Ractor that currently checked out the pooled object
+- the Rust move maps to `Ractor::Port#send(..., move: true)`
+- Rust's "cannot use after move" rule maps to Ruby raising `Ractor::MovedError`
+- borrowing is not modeled; `Pool` transfers ownership instead of lending references
 
-```ruby
-HASH = Ratomic::Map.new
-HASH["mike"] = 123
-HASH["mike"] # => 123
-HASH.fetch_and_modify("mike") { |value| value + 1 }
-HASH.length
-HASH.empty?
-HASH.clear
+This design addresses [issue #5](https://github.com/mperham/ratomic/issues/5),
+where using a pooled object after `with` could lead to memory corruption or a
+process crash.
+
+The lower-level `Ratomic::FixedSizeObjectPool` native class may still exist, but
+`Ratomic::Pool` does not inherit from it. The public `Pool` API is implemented
+in Ruby so it can use Ruby's Ractor ownership primitives directly.
+
+## Contributing
+
+Please read the [Code of Conduct](./CODE_OF_CONDUCT.md) before contributing.
+
+After changing code, run:
+
+```bash
+rake
 ```
 
-### `Ratomic::Queue`
-
-A multi-producer, multi-consumer queue.
-
-```ruby
-q = Ratomic::Queue.new(128)
-
-q.push("hello")
-q << "world"
-
-q.size     # => 2
-q.empty?   # => false
-q.peek     # => "hello"
-item = q.pop # => "hello"
-item = q.pop # => "world"
-q.empty?   # => true
-```
-The `.new(capacity)` method initializes the queue with a fixed-size buffer. The capacity must be greater than or equal to 1 and less than or equal to 2<sup>20</sup>.
-
-Values that are not a power of two are rounded up to the nearest greater power of two, which enables efficient indexing and wrap-around calculations in the underlying buffer.
-
-Since `Ratomic::Queue` is a concurrent queue, the `size`, `empty?`, and `peek` methods provide only a best-effort guess — the values they return might be stale or incorrect.
+This compiles the Rust code and runs the test suite. The test suite writes a
+SimpleCov report to `coverage/index.html` for the Ruby wrapper paths.
 
 ## Thanks
 
-[Ilya Bylich](https://github.com/iliabylich) wrote and documented his original research at [Ruby, Ractors, and Lock-free Data Structures/](https://iliabylich.github.io/ruby-ractors-and-lock-free-data-structures/).
-Thank you for your impressive work, Ilya!
+[Ilya Bylich](https://github.com/iliabylich) wrote and documented his original
+research at [Ruby, Ractors, and Lock-free Data Structures][ractor-research].
 
-This repo is further research into the usability and limitations of Ractor-friendly structures in Ruby code and gems.
+This repo continues that research into the usability and limitations of
+Ractor-friendly structures in Ruby code and gems.
 
 ## License
 
 [MIT License](https://opensource.org/licenses/MIT).
+
+[cdc-parallel-ratomic]: https://github.com/kanutocd/cdc-parallel/blob/main/benchmark/RATOMIC.md
+[ractor-research]: https://iliabylich.github.io/ruby-ractors-and-lock-free-data-structures/

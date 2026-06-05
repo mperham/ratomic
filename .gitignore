@@ -12,3 +12,5 @@ target/
 lib/ratomic/ratomic.so
 Gemfile.lock
 /.ignoreme/
+redis_poc/Gemfile.lock
+*.gem

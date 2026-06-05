@@ -15,6 +15,18 @@ class PoolUnitTest < Minitest::Test
     end
   end
 
+  def test_default_size_seeds_five_objects
+    pool = Ratomic::Pool.new { [] }
+
+    objects = 5.times.map { pool.checkout }
+
+    assert_equal 5, objects.length
+    assert objects.all? { |object| object == [] }
+  ensure
+    objects&.each { |object| pool.checkin(object) if object }
+    pool&.close
+  end
+
   def test_checkout_returns_pooled_object
     pool = Ratomic::Pool.new(1, 0.1) { [] }
 
@@ -124,6 +136,26 @@ class PoolUnitTest < Minitest::Test
     assert_nil pool.close
   end
 
+  def test_close_is_idempotent
+    pool = Ratomic::Pool.new(1, 0.1) { [] }
+
+    pool.close
+
+    assert_nil pool.close
+  end
+
+  def test_with_checks_object_back_in_when_no_block_is_given
+    pool = Ratomic::Pool.new(1, 0.1) { [] }
+
+    assert_raises(LocalJumpError) { pool.with }
+
+    object = pool.checkout
+    assert_equal [], object
+  ensure
+    pool&.checkin(object) if object
+    pool&.close
+  end
+
   def test_control_checkout_sends_available_object_to_reply_port
     object = :pooled_object
     reply = Ractor::Port.new
@@ -195,6 +227,34 @@ class PoolUnitTest < Minitest::Test
     open_reply&.close unless open_reply&.closed?
   end
 
+  def test_control_command_dispatches_checkout
+    object = :pooled_object
+    reply = Ractor::Port.new
+    available = [object]
+    waiting = {}
+
+    result = Ratomic::Pool.send(:handle_command, :checkout, [:request_id, reply], available, waiting)
+
+    assert_same reply, result
+    assert_equal object, reply.receive
+    assert_empty available
+    assert_empty waiting
+  ensure
+    reply&.close unless reply&.closed?
+  end
+
+  def test_control_command_dispatches_checkin
+    object = :pooled_object
+    available = []
+    waiting = {}
+
+    result = Ratomic::Pool.send(:handle_command, :checkin, [object], available, waiting)
+
+    assert_equal [object], result
+    assert_equal [object], available
+    assert_empty waiting
+  end
+
   def test_control_cancel_removes_waiter
     reply = Ractor::Port.new
     available = []
@@ -206,5 +266,21 @@ class PoolUnitTest < Minitest::Test
     assert_empty waiting
   ensure
     reply&.close unless reply&.closed?
+  end
+
+  def test_control_shutdown_command_returns_shutdown
+    available = []
+    waiting = {}
+
+    assert_equal :shutdown, Ratomic::Pool.send(:handle_command, :shutdown, [], available, waiting)
+  end
+
+  def test_control_ignores_unknown_commands
+    available = []
+    waiting = {}
+
+    assert_nil Ratomic::Pool.send(:handle_command, :unknown, [], available, waiting)
+    assert_empty available
+    assert_empty waiting
   end
 end

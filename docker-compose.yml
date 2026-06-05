@@ -14,11 +14,28 @@
 #   Run and exit with the test result code (for scripting dx):
 #     docker compose run ruby40
 #
+#   Run Redis for redis_poc scripts:
+#     docker compose up -d redis
+#
 #   Tear down:
 #     docker compose down
 # -----------------------------------------------------------------------------
 
 services:
+
+  # Redis for local redis_poc scripts
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   # ruby 4.0 — current target
   ruby40:
@@ -37,4 +54,5 @@ services:
 
 volumes:
   cargo-cache:
+  redis-data:
   target-cache:

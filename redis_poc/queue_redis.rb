@@ -4,14 +4,16 @@ require 'redis-client'
 # require 'json'
 # require 'securerandom'
 
+REDIS_HOST = Ractor.make_shareable(ENV.fetch("REDIS_HOST", "127.0.0.1").dup.freeze)
+
 times = 20_000
 queues = %w(one two three four five)
 COUNTS = Ratomic::Map.new
-POOL = Ratomic::Pool.new(50, 1) { RedisClient.new(read_timeout: 3) }
+POOL = Ratomic::Pool.new(50, 1) { RedisClient.new(host: REDIS_HOST, read_timeout: 3) }
 
-class Ractor
-  # create same API as Thread
-  alias_method :value, :take
+def concurrent_value(worker)
+  worker.join if worker.respond_to?(:join)
+  worker.value
 end
 
 POOL.with {|c| c.call("flushdb") }
@@ -21,8 +23,8 @@ POOL.with do |conn|
   end
 end
 
-# TYPE=Thread or TYPE=Ractor bundle exec ...
-conctype = Object.const_get(ENV["type"] || "Ractor")
+# TYPE=Thread or TYPE=Ractor bundle exec ruby queue_redis.rb
+conctype = Object.const_get(ENV.fetch("TYPE", "Ractor"))
 
 p [:start, Time.now]
 concurrency = []
@@ -37,7 +39,7 @@ concurrency = []
         # jid = SecureRandom.hex(12)
         c.call("lpush", q, "job")
           # m.call("sadd", "jids", jid)
-        COUNTS.get(q).inc
+        COUNTS.get(q).increment(1)
       end
     }
     p [:client_done, Time.now]
@@ -51,9 +53,9 @@ end
       element = POOL.with do |conn|
         conn.call("brpop", *q, 2)
       end
-      p element unless element&.size == 2
+      p element unless element.nil? || element.size == 2
       break unless element&.size == 2
-      # COUNTS.get(q).dec
+      # COUNTS.get(q).decrement(1)
       # job = JSON.parse(element[1])
       # POOL.with {|c| c.call("srem", "jids", job['jid']) }
       # job
@@ -72,8 +74,7 @@ Thread.new do
   end
 end
 
-concurrency.map(&:value)
+concurrency.map { |worker| concurrent_value(worker) }
 p [:end, Time.now]
 
 # p POOL.with {|c| c.call "scard", "jids" }
-

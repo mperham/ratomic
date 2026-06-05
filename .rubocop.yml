@@ -16,6 +16,9 @@ Style/Documentation:
 Style/StringLiterals:
   Enabled: false
 
+Metrics/MethodLength:
+  Max: 15
+
 Metrics/BlockLength:
   Exclude:
     - "Rakefile"

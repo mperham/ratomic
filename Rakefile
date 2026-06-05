@@ -12,6 +12,13 @@ rescue LoadError => e
   task(:rubocop) { raise e }
 end
 
+begin
+  require "yard"
+  YARD::Rake::YardocTask.new(:yard)
+rescue LoadError => e
+  task(:yard) { raise e }
+end
+
 GEMSPEC = Gem::Specification.load("ratomic.gemspec")
 RUBY_VERSION_REQUIREMENT = "4.0"
 CROSS_PLATFORMS = %w[

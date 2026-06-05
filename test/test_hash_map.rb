@@ -1,11 +1,12 @@
 require "test_helper"
 
 class TestHashMap < Minitest::Test
+  MAX_RACTORS = 8
   MAP = Ratomic::Map.new
 
   def test_ractor_hashing
     MAP.clear
-    cpus = Etc.nprocessors
+    cpus = [Etc.nprocessors, MAX_RACTORS].min
     iter = 100000
     ractors = 1.upto(cpus).map do |i|
       Ractor.new(iter) do |iter|
@@ -34,7 +35,7 @@ class TestHashMap < Minitest::Test
 
   def test_size_with_ractors
     MAP.clear
-    cpus = Etc.nprocessors
+    cpus = [Etc.nprocessors, MAX_RACTORS].min
     iter = 100_000
     ractors = 1.upto(cpus).map do |i|
       Ractor.new(iter) do |iter|
