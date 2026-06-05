@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-06
+
+- Fix `require "ratomic"` for installed gems by resolving the versioned native
+  extension layout.
+- Add a regression test for the packaged gem loader path.
+- Keep the curated RBS signatures packaged with the gem.
+
 ## [0.3.1] - 2026-06-05
 
 - Realign `Counter`, `Map`, and `Queue` return semantics with Ruby conventions.
