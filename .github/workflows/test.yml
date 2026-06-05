@@ -37,4 +37,4 @@ jobs:
       - name: Compile extension and run the default task
         env:
           RATOMIC_PERFORMANCE_TESTS: "1"
-        run: bundle exec rake
+        run: bundle exec rake A="--verbose"
