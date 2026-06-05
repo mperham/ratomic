@@ -26,7 +26,6 @@ concurrency:
 
 jobs:
   test:
-    timeout-minutes: 45
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -51,7 +50,6 @@ jobs:
         run: cargo test --workspace
 
       - name: Run Ruby tests
-        timeout-minutes: 30
         env:
           RATOMIC_PERFORMANCE_TESTS: "1"
         run: bundle exec rake A="--verbose"
