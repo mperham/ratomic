@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module Ratomic
   # A Ractor-shareable concurrent Hash backed by Rust's DashMap.
   #
@@ -227,7 +225,10 @@ module Ratomic
         if old_value.nil? && missing
           by
         else
-          raise TypeError, "existing value for #{key.inspect} must be numeric: #{old_value.inspect}" unless old_value.is_a?(Numeric)
+          unless old_value.is_a?(Numeric)
+            raise TypeError,
+                  "existing value for #{key.inspect} must be numeric: #{old_value.inspect}"
+          end
 
           old_value + by
         end
@@ -262,7 +263,10 @@ module Ratomic
         if old_value.nil? && missing
           [value].freeze
         else
-          raise TypeError, "existing value for #{key.inspect} must be an Array: #{old_value.inspect}" unless old_value.is_a?(Array)
+          unless old_value.is_a?(Array)
+            raise TypeError,
+                  "existing value for #{key.inspect} must be an Array: #{old_value.inspect}"
+          end
 
           (old_value + [value]).freeze
         end
@@ -283,7 +287,10 @@ module Ratomic
         if old_value.nil? && missing
           Set[value].freeze
         else
-          raise TypeError, "existing value for #{key.inspect} must be a Set: #{old_value.inspect}" unless old_value.is_a?(Set)
+          unless old_value.is_a?(Set)
+            raise TypeError,
+                  "existing value for #{key.inspect} must be a Set: #{old_value.inspect}"
+          end
 
           (old_value | [value]).freeze
         end
