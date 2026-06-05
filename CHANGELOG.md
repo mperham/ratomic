@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-05
+
+- Realign `Counter`, `Map`, and `Queue` return semantics with Ruby conventions.
+- Expand YARD comments across the public API to keep full documentation coverage.
+- Move the top-level module docs to the gem entrypoint for a cleaner load path.
+
 ## [0.3.0] - 2026-06-05
 
 - Promote the DashMap-backed `Ratomic::Map` API as the primary concurrent Hash primitive.
