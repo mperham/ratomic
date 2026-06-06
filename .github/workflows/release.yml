@@ -129,6 +129,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs['dry-run']
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
     steps:
       - name: Download gem artifacts
         uses: actions/download-artifact@v7
