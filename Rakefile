@@ -4,6 +4,7 @@ require "bundler/gem_tasks"
 require "minitest/test_task"
 require "rake/clean"
 require "rb_sys/extensiontask"
+require "rbconfig"
 
 begin
   require "rubocop/rake_task"
@@ -21,6 +22,7 @@ end
 
 GEMSPEC = Gem::Specification.load("ratomic.gemspec")
 RUBY_VERSION_REQUIREMENT = "4.0"
+RUBY_ABI_VERSION = RbConfig::CONFIG.fetch("ruby_version").split(".", 3)[0, 2].join(".")
 CROSS_PLATFORMS = %w[
   x86_64-linux
   aarch64-linux
@@ -30,10 +32,14 @@ CROSS_PLATFORMS = %w[
 ].freeze
 
 RbSys::ExtensionTask.new("ratomic", GEMSPEC) do |ext|
-  ext.lib_dir = "lib/ratomic"
+  ext.lib_dir = "lib/ratomic/#{RUBY_ABI_VERSION}"
   ext.cross_compile = true
   ext.cross_platform = [ENV.fetch("RUBY_TARGET", nil)].compact
 end
+[
+  "lib/ratomic/ratomic.so",
+  "lib/ratomic/#{RUBY_ABI_VERSION}/ratomic.so"
+].each { |path| CLEAN.include(path) }
 Minitest::TestTask.create do |task|
   task.test_prelude = %(require "support/simplecov")
 end
@@ -65,7 +71,7 @@ namespace :gem do
         "LICENSE.txt",
         "README.md",
         "lib/**/*.rb",
-        "lib/ratomic/*.{bundle,dll,so}",
+        "lib/ratomic/**/*.{bundle,dll,so}",
         "ratomic.gemspec"
       ]
     end

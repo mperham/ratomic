@@ -9,7 +9,9 @@
 *.bundle
 rs/target
 target/
-lib/ratomic/ratomic.so
+lib/ratomic/**/*.bundle
+lib/ratomic/**/*.dll
+lib/ratomic/**/*.so
 Gemfile.lock
 /.ignoreme/
 redis_poc/Gemfile.lock
