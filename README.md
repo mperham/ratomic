@@ -49,6 +49,10 @@ RBS signatures are included under `sig/` for downstream type checking.
   uses `Ratomic::Map` for relation metadata tracking in a real CDC pipeline
   POC, with a matching benchmark and deeper implementation notes in
   [docs/relation_tracker.md](https://github.com/kanutocd/pgoutput-parser/blob/main/docs/relation_tracker.md).
+- [`sidekiq-tenant-policy-cache`](https://github.com/kanutocd/sidekiq-tenant-policy-cache)
+  shows `Ratomic::Map` and `Ratomic::Counter` in Sidekiq middleware for tenant
+  policy caching and cache-hit / cache-miss tracking, with a benchmarked
+  cache-vs-policy-every-job comparison.
 - The [`cdc-parallel` Ratomic benchmark][cdc-parallel-ratomic] demonstrates
   Ractor workers updating shared CDC processing metrics through `Ratomic::Map`
   and `Ratomic::Counter`.
