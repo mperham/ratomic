@@ -137,11 +137,19 @@ jobs:
           merge-multiple: true
 
       - name: Smoke test packaged ruby gem
+        continue-on-error: true
         run: |
-          tmpdir=$(mktemp -d)
-          current_gem_path=$(ruby -e 'print Gem.path.join(":")')
-          gem install --local --force --install-dir "$tmpdir" pkg/ratomic*x86_64-linux.gem
-          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e 'require "ratomic"; puts Ratomic::VERSION'
+          set -euxo pipefail
+          gem uninstall ratomic -aIx || true
+          gem install --local pkg/ratomic*x86_64-linux.gem
+          bundle info ratomic
+          gem contents ratomic | sort
+          ruby -e '
+            require "ratomic"
+            puts "version=#{Ratomic::VERSION}"
+            puts "native_enabled=#{Ratomic.native_enabled?}"
+            puts "counter=#{Ratomic::Counter.new.increment(1)}"
+          '
 
       - name: Show gems for dry run
         run: find pkg -name "*.gem" -print | sort

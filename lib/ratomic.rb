@@ -9,27 +9,47 @@ require "rbconfig"
 #
 # The public API currently includes {Counter}, {Map}, {Queue}, and {Pool}.
 module Ratomic
-  def self.load_native_extension
-    ruby_api_ver = RbConfig::CONFIG.fetch("ruby_version").split(".", 3)[0, 2].join(".")
-    require_relative "ratomic/#{ruby_api_ver}/ratomic"
-    @native_enabled = true
-  rescue LoadError
-    @native_enabled = false
-  end
-
-  def self.native_enabled?
-    @native_enabled == true
-  end
-  private_class_method :load_native_extension
-
   # Base error class for Ratomic-specific failures.
   class Error < StandardError; end
+
+  class << self
+    def native_extension_path
+      ruby_api_ver = RbConfig::CONFIG.fetch("ruby_version").split(".", 3)[0, 2].join(".")
+      "ratomic/#{ruby_api_ver}/ratomic"
+    end
+    private :native_extension_path
+
+    def development_native_extension_path
+      "ratomic/ratomic"
+    end
+    private :development_native_extension_path
+
+    def load_native_extension_path(path)
+      require_relative path
+      true
+    rescue LoadError
+      false
+    end
+    private :load_native_extension_path
+
+    def load_native_extension
+      @native_enabled =
+        load_native_extension_path(native_extension_path) ||
+        load_native_extension_path(development_native_extension_path)
+    end
+
+    def native_enabled?
+      @native_enabled == true
+    end
+  end
+  private_class_method :load_native_extension
 end
 
 Ratomic.send(:load_native_extension)
-require_relative "ratomic/version"
-require_relative "ratomic/undefined"
-require_relative "ratomic/counter"
-require_relative "ratomic/map"
-require_relative "ratomic/queue"
-require_relative "ratomic/pool"
+require "ratomic/version"
+
+require "ratomic/undefined"
+require "ratomic/counter"
+require "ratomic/map"
+require "ratomic/queue"
+require "ratomic/pool"

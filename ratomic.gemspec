@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
                      "backed by native Rust concurrency primitives."
   spec.homepage = "https://mperham.github.io/ratomic"
   spec.license = "MIT"
-  spec.required_ruby_version = [">= 4.0", "< 4.1.dev"]
+  spec.required_ruby_version = ">= 4.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/mperham/ratomic"

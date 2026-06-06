@@ -23,8 +23,7 @@ class TestLoader < Minitest::Test
 
     lib_dir = File.join(dir, "lib")
     ratomic_dir = File.join(lib_dir, "ratomic")
-    ruby_api_ver = RbConfig::CONFIG.fetch("ruby_version").split(".", 3)[0, 2].join(".")
-    version_dir = File.join(ratomic_dir, ruby_api_ver)
+    version_dir = File.join(ratomic_dir, RbConfig::CONFIG.fetch("ruby_version"))
 
     FileUtils.mkdir_p(version_dir)
     FileUtils.cp(Dir[File.expand_path("../lib/ratomic/*.rb", __dir__)], ratomic_dir)
@@ -35,7 +34,7 @@ class TestLoader < Minitest::Test
   end
 
   def built_native_extension
-    Dir[File.expand_path("../lib/ratomic/*/ratomic.{so,bundle}", __dir__)].first
+    Dir[File.expand_path("../lib/ratomic/ratomic.{so,bundle}", __dir__)].first
   end
 
   def run_loader_probe(lib_dir)
