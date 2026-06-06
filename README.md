@@ -45,6 +45,10 @@ RBS signatures are included under `sig/` for downstream type checking.
 - [`redis_poc`](./redis_poc) contains local Redis scripts that exercise
   `Ratomic::Map`, `Ratomic::Counter`, and `Ratomic::Pool` under Thread and
   Ractor workloads.
+- [`pgoutput-parser`](https://github.com/kanutocd/pgoutput-parser#relation-metadata-tracking)
+  uses `Ratomic::Map` for relation metadata tracking in a real CDC pipeline
+  POC, with a matching benchmark and deeper implementation notes in
+  [docs/relation_tracker.md](https://github.com/kanutocd/pgoutput-parser/blob/main/docs/relation_tracker.md).
 - The [`cdc-parallel` Ratomic benchmark][cdc-parallel-ratomic] demonstrates
   Ractor workers updating shared CDC processing metrics through `Ratomic::Map`
   and `Ratomic::Counter`.
