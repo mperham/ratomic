@@ -25,7 +25,7 @@ class TestNativeDisabled < Minitest::Test
       )
 
       assert_predicate status, :success?, stderr
-      assert_equal "false\n0.3.3\nRatomic::Undefined\nRatomic::Pool\n", stdout
+      assert_equal "false\n#{Ratomic::VERSION}\nRatomic::Undefined\nRatomic::Pool\n", stdout
     end
   end
 
