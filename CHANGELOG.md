@@ -1,5 +1,22 @@
 ## [Unreleased]
 
+## [0.3.5] - 2026-06-06
+
+- Fix the native loader so development loads the compiled extension from the
+  workspace layout while installed gems still resolve the versioned packaged
+  native path.
+- Add loader coverage for the native-enabled path and keep the release smoke
+  test validating the packaged native gem shape before publish.
+
+## [0.3.4] - 2026-06-06
+
+- Move the compiled native extension into the versioned `lib/ratomic/4.0/`
+  layout used by the installed gem.
+- Load the versioned native artifact explicitly and mark native support as
+  unavailable when the extension is missing.
+- Add loader coverage for both the versioned native path and the native-disabled
+  branch.
+
 ## [0.3.3] - 2026-06-06
 
 - Fix `require "ratomic"` for installed gems by resolving the packaged native
