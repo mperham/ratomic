@@ -142,11 +142,11 @@ jobs:
         continue-on-error: true
         run: |
           set -euxo pipefail
-          gem uninstall ratomic -aIx || true
-          gem install --local pkg/ratomic*x86_64-linux.gem
-          bundle info ratomic
-          gem contents ratomic | sort
-          ruby -e '
+          tmpdir=$(mktemp -d)
+          current_gem_path=$(ruby -e 'print Gem.path.join(":")')
+          gem install --local --force --install-dir "$tmpdir" pkg/ratomic*x86_64-linux.gem
+          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" gem contents ratomic | sort
+          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e '
             require "ratomic"
             puts "version=#{Ratomic::VERSION}"
             puts "native_enabled=#{Ratomic.native_enabled?}"
@@ -190,10 +190,18 @@ jobs:
 
       - name: Smoke test packaged ruby gem
         run: |
+          set -euxo pipefail
           tmpdir=$(mktemp -d)
           current_gem_path=$(ruby -e 'print Gem.path.join(":")')
           gem install --local --force --install-dir "$tmpdir" pkg/ratomic*x86_64-linux.gem
-          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e 'require "ratomic"; puts Ratomic::VERSION'
+          GEM_HOME="$tmpdir" GEM_PATH="$tmpdir:$current_gem_path" ruby -e '
+            require "ratomic"
+            abort "native disabled" unless Ratomic.native_enabled?
+            abort "bad version" unless Ratomic::VERSION == ENV.fetch("GITHUB_REF_NAME").delete_prefix("v")
+            abort "bad counter" unless Ratomic::Counter.new.increment(1) == 1
+            puts "version=#{Ratomic::VERSION}"
+            puts "native_enabled=#{Ratomic.native_enabled?}"
+          '
 
       # Authenticate with RubyGems via Trusted Publishing (OIDC)
       - name: Configure RubyGems Credentials
