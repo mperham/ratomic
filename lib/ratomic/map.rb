@@ -11,6 +11,11 @@ module Ratomic
   # This is not a full Hash replacement. Iteration and arbitrary mutable object
   # borrowing are intentionally absent.
   #
+  # Some methods on this type hold an internal entry guard while the block runs
+  # or while a reference is live. Do not call back into the same map from inside
+  # those blocks, and do not hold a reference from #get or #[] while mutating
+  # the same key. That can deadlock the underlying DashMap bucket.
+  #
   # @example Store pipeline offsets
   #   OFFSETS = Ratomic::Map.new
   #   OFFSETS[:source_a] = 42
@@ -21,6 +26,10 @@ module Ratomic
   #
   #   Missing keys return nil, so use #key? or #fetch when stored nil values
   #   need to be distinguished from missing entries.
+  #
+  #   If you keep the returned reference alive and then mutate the same key, you
+  #   can deadlock the underlying DashMap bucket. Copy out what you need and let
+  #   the reference go out of scope before mutating.
   #
   #   @param key [Object] lookup key
   #   @return [Object, nil] the stored value, or nil when the key is missing
@@ -102,6 +111,10 @@ module Ratomic
   #   into the same map from inside the block. Prefer native update helpers such
   #   as #increment when they fit the workflow.
   #
+  #   Never call this method from inside another live reference to the same
+  #   entry or from a block that already holds the same map's guard. That can
+  #   deadlock the bucket.
+  #
   #   If the block raises, the previous value is preserved. If the key was
   #   missing, no entry is inserted.
   #
@@ -140,6 +153,10 @@ module Ratomic
   #   locked, so avoid using this method for Ractor-hot loops or calling back
   #   into the same map from inside the block. Prefer native update helpers such
   #   as #increment when they fit the workflow.
+  #
+  #   Never call this method from inside another live reference to the same
+  #   entry or from a block that already holds the same map's guard. That can
+  #   deadlock the bucket.
   #
   #   If the block raises, the previous value is preserved.
   #
