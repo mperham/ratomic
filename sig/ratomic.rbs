@@ -62,6 +62,14 @@ module Ratomic
     def length: () -> Integer
   end
 
+  class LocalPool
+    def self.new: (?size: Integer, ?timeout: (Numeric | nil), factory: untyped) -> LocalPool
+                | (?size: Integer, ?timeout: (Numeric | nil)) { () -> untyped } -> LocalPool
+
+    def with: () { (untyped object) -> untyped } -> untyped
+    def close: () -> nil
+  end
+
   class Pool
     def self.new: (?Integer size, ?(Numeric | nil) timeout) { () -> untyped } -> Pool
 
