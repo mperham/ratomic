@@ -1,5 +1,35 @@
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-10
+
+### Added
+
+* Introduced `Ratomic::LocalPool`, a new pooling primitive for live resources that should remain local to the Ractor that created them.
+* Added Redis-based smoke tests demonstrating safe operation across both Threads and Ractors.
+* Added queue producer/consumer Redis examples.
+* Added RBS definitions for `LocalPool`.
+* Expanded API documentation and usage examples.
+
+### Design
+
+`Ratomic::Pool` and `Ratomic::LocalPool` serve different ownership models:
+
+* `Pool` — ownership transfer
+* `LocalPool` — ownership preservation
+
+`LocalPool` is intended for resources such as:
+
+* Redis clients
+* Database connections
+* HTTP clients
+* Kafka producers
+* Other stateful network resources
+
+### Notes
+
+`LocalPool` is implemented in pure Ruby and is not backed by Ratomic's Rust extension.
+
+
 ## [0.3.5] - 2026-06-06
 
 - Fix the native loader so development loads the compiled extension from the

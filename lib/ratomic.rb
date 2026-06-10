@@ -4,10 +4,11 @@ require "rbconfig"
 
 # Ratomic provides mutable data structures for Ruby Ractors. Its primitives
 # are backed by native Rust concurrency libraries so Ruby code can share useful
-# state across Ractors without falling back to one global lock. Pool uses Ruby
-# Ractor ownership-transfer primitives instead of the native Rust path.
+# state across Ractors without falling back to one global lock. `Pool` and
+# `LocalPool` are pure Ruby primitives which use Ruby Ractor ownership and
+# locality semantics instead of the native Rust path.
 #
-# The public API currently includes {Counter}, {Map}, {Queue}, and {Pool}.
+# The public API currently includes {Counter}, {Map}, {Queue}, {Pool}, and {LocalPool}.
 module Ratomic
   # Base error class for Ratomic-specific failures.
   class Error < StandardError; end
@@ -53,3 +54,5 @@ require "ratomic/counter"
 require "ratomic/map"
 require "ratomic/queue"
 require "ratomic/pool"
+
+require "ratomic/local_pool"

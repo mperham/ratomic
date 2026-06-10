@@ -3,6 +3,6 @@
 source "https://rubygems.org"
 
 gem "redis-client"
-gem "ratomic", path: ".."
-
 gem "json"
+
+gem "ratomic", path: "../"

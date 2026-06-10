@@ -1,80 +1,83 @@
-# Run with `bundle exec ruby app.rb`
-require 'ratomic'
-require 'redis-client'
-# require 'json'
-# require 'securerandom'
+# Run with `TYPE=Thread bundle exec ruby queue_redis.rb`
+# Run with `TYPE=Ractor bundle exec ruby queue_redis.rb`
+require "ratomic"
+require "redis-client"
+
+RedisClientFactory = Data.define(:host, :read_timeout) do
+  def call
+    RedisClient.new(host: host, read_timeout: read_timeout)
+  end
+end
 
 REDIS_HOST = Ractor.make_shareable(ENV.fetch("REDIS_HOST", "127.0.0.1").dup.freeze)
+TIMES = Integer(ENV.fetch("TIMES", "20000"))
+PRODUCERS = Integer(ENV.fetch("PRODUCERS", "2"))
+CONSUMERS = Integer(ENV.fetch("CONSUMERS", "5"))
+STOP = Ractor.make_shareable("__ratomic_stop__".freeze)
 
-times = 20_000
-queues = %w(one two three four five)
+QUEUES = Ractor.make_shareable(%w[one two three four five].map(&:freeze).freeze)
 COUNTS = Ratomic::Map.new
-POOL = Ratomic::Pool.new(50, 1) { RedisClient.new(host: REDIS_HOST, read_timeout: 3) }
+POOL = Ratomic::LocalPool.new(
+  size: Integer(ENV.fetch("POOL_SIZE", "8")),
+  timeout: Float(ENV.fetch("POOL_TIMEOUT", "1")),
+  factory: RedisClientFactory.new(REDIS_HOST, 3)
+)
 
 def concurrent_value(worker)
   worker.join if worker.respond_to?(:join)
   worker.value
 end
 
-POOL.with {|c| c.call("flushdb") }
-POOL.with do |conn|
-  queues.each do |q|
-    COUNTS.set(q, Ratomic::Counter.new)
-  end
-end
+POOL.with { |client| client.call("flushdb") }
+QUEUES.each { |queue| COUNTS.set(queue, Ratomic::Counter.new) }
 
 # TYPE=Thread or TYPE=Ractor bundle exec ruby queue_redis.rb
-conctype = Object.const_get(ENV.fetch("TYPE", "Ractor"))
+concurrency_type = Object.const_get(ENV.fetch("TYPE", "Ractor"))
 
-p [:start, Time.now]
-concurrency = []
-2.times do |off|
-  concurrency << conctype.new(off, queues, times) do |ridx, qs, cnt|
-    p [:client, Time.now]
-    # offset = (ridx * cnt)
-    qsz = qs.size
-    POOL.with {|c|
-      cnt.times do |idx|
-        q = qs[idx % qsz]
-        # jid = SecureRandom.hex(12)
-        c.call("lpush", q, "job")
-          # m.call("sadd", "jids", jid)
-        COUNTS.get(q).increment(1)
-      end
-    }
-    p [:client_done, Time.now]
-  end
-end
+p [:start, concurrency_type, Time.now]
 
-5.times do
-  concurrency << conctype.new(queues) do |q|
-    p [:process, q, Time.now]
-    loop do
-      element = POOL.with do |conn|
-        conn.call("brpop", *q, 2)
-      end
-      p element unless element.nil? || element.size == 2
-      break unless element&.size == 2
-      # COUNTS.get(q).decrement(1)
-      # job = JSON.parse(element[1])
-      # POOL.with {|c| c.call("srem", "jids", job['jid']) }
-      # job
+producers = PRODUCERS.times.map do |producer_index|
+  concurrency_type.new(producer_index, QUEUES, TIMES) do |ridx, queues, count|
+    queue_count = queues.size
+
+    count.times do |idx|
+      queue = queues[(idx + ridx) % queue_count]
+      POOL.with { |client| client.call("lpush", queue, "job") }
+      COUNTS.get(queue).increment(1)
     end
-  ensure
-    p [:process_done, q, Time.now]
+
+    [:producer_done, ridx]
   end
 end
 
-Thread.new do
-  loop do
-    p(queues.map do |q|
-      { q => COUNTS.get(q).read }
-    end)
-    sleep 2
+consumers = CONSUMERS.times.map do |consumer_index|
+  concurrency_type.new(consumer_index, QUEUES, STOP) do |ridx, queues, stop_marker|
+    processed = 0
+
+    loop do
+      item = POOL.with { |client| client.call("brpop", *queues, 2) }
+      next if item.nil?
+
+      queue, payload = item
+      break if payload == stop_marker
+
+      COUNTS.get(queue).decrement(1)
+      processed += 1
+    end
+
+    [:consumer_done, ridx, processed]
   end
 end
 
-concurrency.map { |worker| concurrent_value(worker) }
+producer_results = producers.map { |worker| concurrent_value(worker) }
+
+CONSUMERS.times do
+  POOL.with { |client| client.call("lpush", QUEUES.first, STOP) }
+end
+
+consumer_results = consumers.map { |worker| concurrent_value(worker) }
+
+p producer_results
+p consumer_results
+p(QUEUES.map { |queue| { queue => COUNTS.get(queue).read } })
 p [:end, Time.now]
-
-# p POOL.with {|c| c.call "scard", "jids" }

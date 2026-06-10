@@ -5,7 +5,7 @@
 [![Ruby Version](https://img.shields.io/badge/ruby-%3E%3D%204.0-ruby.svg)](https://www.ruby-lang.org/en/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Ratomic provides mutable data structures for Ruby Ractors. Its primitives are backed by native Rust concurrency libraries so Ruby code can share useful state across Ractors without falling back to one global lock. `Pool` uses Ruby Ractor ownership-transfer primitives instead of the native Rust path.
+Ratomic provides mutable data structures for Ruby Ractors. Its core shared primitives are backed by native Rust concurrency libraries so Ruby code can share useful state across Ractors without falling back to one global lock. `Pool` and `LocalPool` are pure Ruby primitives that use Ruby Ractor ownership and locality semantics instead of the native Rust path.
 
 ## Project Direction
 
@@ -43,7 +43,7 @@ RBS signatures are included under `sig/` for downstream type checking.
 ## Examples And Benchmarks
 
 - [`redis_poc`](./redis_poc) contains local Redis scripts that exercise
-  `Ratomic::Map`, `Ratomic::Counter`, and `Ratomic::Pool` under Thread and
+  `Ratomic::Map`, `Ratomic::Counter`, and `Ratomic::LocalPool` under Thread and
   Ractor workloads.
 - [`pgoutput-parser`](https://github.com/kanutocd/pgoutput-parser#relation-metadata-tracking)
   uses `Ratomic::Map` for relation metadata tracking in a real CDC pipeline
@@ -59,10 +59,11 @@ RBS signatures are included under `sig/` for downstream type checking.
 
 ## Usage
 
-Ratomic provides two safety models:
+Ratomic provides three safety models:
 
 - `Counter`, `Map`, and `Queue` are shared concurrent structures.
-- `Pool` transfers ownership of mutable objects between Ractors.
+- `Pool` transfers ownership of plain mutable objects between Ractors.
+- `LocalPool` keeps live resources local to the Ractor that created them.
 
 That distinction matters. A mutable pooled object is not shared by multiple Ractors
 at the same time. It is moved to the caller on checkout and moved back to the pool
@@ -126,6 +127,11 @@ groups = Ratomic::Map.new
 groups.append("jobs", "import") # => ["import"]
 groups.add_to_set("workers", "alpha") # => #<Set: {"alpha"}>
 ```
+
+Some `Map` methods hold an internal guard while a block runs or while a
+reference is live. Avoid re-entering the same map from inside those blocks or
+mutating the same key while holding a reference from `get` or `[]`. The API
+docs cover the exact locking caveats.
 
 ### `Ratomic::Queue`
 
@@ -226,6 +232,142 @@ process crash.
 The lower-level `Ratomic::FixedSizeObjectPool` native class may still exist, but
 `Ratomic::Pool` does not inherit from it. The public `Pool` API is implemented
 in Ruby so it can use Ruby's Ractor ownership primitives directly.
+
+
+### `Ratomic::LocalPool`
+
+`Ratomic::LocalPool` is the safe pool shape for live resources that should stay
+local to the Ractor that created them.
+
+Use it for resources such as:
+
+- Redis clients
+- database connections
+- HTTP clients
+- Kafka producers
+- OpenSearch clients
+- per-worker caches, buffers, encoders, or aggregators
+
+Unlike `Ratomic::Pool`, `LocalPool` does **not** move pooled objects between
+Ractors. The `LocalPool` instance is a shareable facade. Each Ractor lazily
+creates and owns its own private, thread-safe resource pool behind that facade.
+Threads inside the same Ractor share that local pool, but different Ractors
+never share the live resources.
+
+```ruby
+require "ratomic"
+require "redis-client"
+
+RedisFactory = Data.define(:host) do
+  def call
+    RedisClient.new(host: host)
+  end
+end
+
+REDIS = Ratomic::LocalPool.new(
+  size: 10,
+  timeout: 1,
+  factory: RedisFactory.new("127.0.0.1".freeze)
+)
+
+REDIS.with do |client|
+  client.call("ping")
+end
+```
+
+Use `Pool` for plain mutable values where ownership transfer is the intended
+safety model. Use `LocalPool` for live resources that should be created, used,
+and reused inside the same Ractor.
+
+The intended topology is:
+
+```text
+shareable LocalPool facade
+        ↓
+one local resource pool per Ractor
+        ↓
+threads inside that Ractor share local resources
+```
+
+The mental model is intentionally close to a Ruby local variable: the resource is
+local to the execution scope that owns it. For `LocalPool`, that scope is the
+current Ractor.
+
+#### Pure Ruby implementation
+
+`LocalPool` is implemented in pure Ruby.
+
+Unlike `Counter`, `Map`, and `Queue`, it is not backed by the Rust native
+extension. Its safety comes from Ruby Ractor ownership boundaries and locality,
+not from Rust synchronization primitives.
+
+#### Why not use `Pool` for Redis clients?
+
+`Pool` moves checked-out objects between Ractors. That is correct for plain
+mutable Ruby values such as arrays or buffers, but it is a poor fit for live I/O
+resources. Redis clients, database connections, sockets, and similar resources
+carry internal connection state. Moving those objects across Ractor boundaries can
+leave nested internal state unusable, producing errors such as
+`Ractor::MovedError`.
+
+`LocalPool` avoids that class of bug by not moving live resources at all. Work
+moves between Ractors. Live resources stay local.
+
+#### Redis smoke-test snapshot
+
+The Redis POC includes two scripts under `redis_poc/`.
+
+`basic_redis.rb` exercises repeated Redis operations from both Threads and
+Ractors:
+
+```text
+Thread
+[{"one" => 31501}, {"two" => 31379}, {"three" => 31320}, {"four" => 31410}, {"five" => 31454}]
+
+Ractor
+[{"one" => 42419}, {"two" => 42186}, {"three" => 42400}, {"four" => 42206}, {"five" => 42568}]
+```
+
+`queue_redis.rb` exercises a producer/consumer Redis queue workload:
+
+```text
+[:start, Ractor, 2026-06-10 01:17:57.584727984 +0800]
+[[:producer_done, 0], [:producer_done, 1]]
+[[:consumer_done, 0, 7998], [:consumer_done, 1, 7987], [:consumer_done, 2, 7984], [:consumer_done, 3, 8035], [:consumer_done, 4, 7996]]
+[{"one" => 0}, {"two" => 0}, {"three" => 0}, {"four" => 0}, {"five" => 0}]
+[:end, 2026-06-10 01:18:02.226310862 +0800]
+```
+
+These numbers are a smoke-test snapshot, not a formal benchmark claim. The
+important interpretation is:
+
+- no `Ractor::MovedError`
+- no `Ractor::IsolationError`
+- no process crash
+- all produced queue items were consumed
+- Redis queues drained to zero
+- live Redis clients remained owned by the Ractor that created them
+
+#### Inception pool
+
+Internally, `LocalPool` follows the "inception pool" shape discovered while
+experimenting with Redis clients under Ruby Ractors:
+
+```text
+pool facade
+  ↓
+local pool
+  ↓
+resource
+```
+
+That same ownership pattern appears in hybrid execution runtimes: put parallel
+workers on the outside, keep I/O concurrency and live resources inside the worker
+that owns them. Ratomic keeps the primitive general-purpose and independent of
+any specific runtime, scheduler, database, or message system.
+
+`LocalPool#close` closes only the current Ractor's local pool. Other Ractors own
+their own pools and must close them independently when needed.
 
 ## Contributing
 

@@ -2,7 +2,14 @@
 members = ["ext/ratomic"]
 resolver = "2"
 
+[profile.dev]
+debug = true
+
 [profile.release]
 panic = "abort"
 lto = true
 codegen-units = 1
+# By default, debug symbols are stripped from the final binary which makes it
+# harder to debug if something goes wrong. It's recommended to keep debug
+# symbols in the release build so that you can debug the final binary if needed.
+debug = false
