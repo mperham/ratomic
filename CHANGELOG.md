@@ -1,5 +1,37 @@
 ## [Unreleased]
 
+## 0.4.1
+
+### Documentation
+
+- Document the `LocalPool` factory contract.
+- Clarify ownership-transfer versus resource-locality semantics.
+- Add guidance for designing Ractor-shareable factory objects.
+- Add examples of correct and incorrect factory implementations.
+- Improve `LocalPool` API documentation and YARD comments.
+
+### Smoke Tests
+
+- Add PostgreSQL smoke tests alongside Redis smoke tests.
+- Consolidate smoke-test documentation.
+- Add captured Redis and PostgreSQL validation snapshots.
+- Document expected outcomes and interpretation of smoke-test runs.
+
+### Validation
+
+Redis and PostgreSQL smoke tests now demonstrate:
+
+- successful Thread and Ractor execution
+- no `Ractor::MovedError`
+- no `Ractor::IsolationError`
+- successful queue draining
+- preservation of live resource ownership
+- safe reuse of Redis clients and PostgreSQL connections
+
+These tests validate that `LocalPool` is a general-purpose
+resource-locality primitive for stateful network clients rather
+than a Redis-specific abstraction.
+
 ## [0.4.0] - 2026-06-10
 
 ### Added
@@ -9,6 +41,8 @@
 * Added queue producer/consumer Redis examples.
 * Added RBS definitions for `LocalPool`.
 * Expanded API documentation and usage examples.
+
+
 
 ### Design
 

@@ -1,4 +1,4 @@
-# Run with `bundle exec ruby basic_redis.rb`
+# Run with `bundle exec ruby redis/basic_redis.rb`
 require "ratomic"
 require "redis-client"
 

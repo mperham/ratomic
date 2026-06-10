@@ -42,8 +42,8 @@ RBS signatures are included under `sig/` for downstream type checking.
 
 ## Examples And Benchmarks
 
-- [`redis_poc`](./redis_poc) contains local Redis scripts that exercise
-  `Ratomic::Map`, `Ratomic::Counter`, and `Ratomic::LocalPool` under Thread and
+- [`smoke_tests`](./smoke_tests) contains local Redis and PostgreSQL scripts that
+  exercise `Ratomic::LocalPool` with real stateful clients under Thread and
   Ractor workloads.
 - [`pgoutput-parser`](https://github.com/kanutocd/pgoutput-parser#relation-metadata-tracking)
   uses `Ratomic::Map` for relation metadata tracking in a real CDC pipeline
@@ -313,11 +313,12 @@ leave nested internal state unusable, producing errors such as
 `LocalPool` avoids that class of bug by not moving live resources at all. Work
 moves between Ractors. Live resources stay local.
 
-#### Redis smoke-test snapshot
+#### Redis and PostgreSQL smoke-test snapshots
 
-The Redis POC includes two scripts under `redis_poc/`.
+The smoke tests live under [`smoke_tests/`](./smoke_tests/) and exercise `LocalPool` with real
+Redis clients and PostgreSQL connections.
 
-`basic_redis.rb` exercises repeated Redis operations from both Threads and
+`redis/basic_redis.rb` exercises repeated Redis operations from both Threads and
 Ractors:
 
 ```text
@@ -328,7 +329,7 @@ Ractor
 [{"one" => 42419}, {"two" => 42186}, {"three" => 42400}, {"four" => 42206}, {"five" => 42568}]
 ```
 
-`queue_redis.rb` exercises a producer/consumer Redis queue workload:
+`redis/queue_redis.rb` exercises a producer/consumer Redis queue workload:
 
 ```text
 [:start, Ractor, 2026-06-10 01:17:57.584727984 +0800]
@@ -338,15 +339,24 @@ Ractor
 [:end, 2026-06-10 01:18:02.226310862 +0800]
 ```
 
-These numbers are a smoke-test snapshot, not a formal benchmark claim. The
+`postgres/basic_postgres.rb` exercises repeated PostgreSQL upserts from both
+Threads and Ractors. `postgres/queue_postgres.rb` exercises a table-backed
+producer/consumer workload using `FOR UPDATE SKIP LOCKED`.
+
+These numbers are smoke-test snapshots, not formal benchmark claims. The
 important interpretation is:
 
 - no `Ractor::MovedError`
 - no `Ractor::IsolationError`
 - no process crash
 - all produced queue items were consumed
-- Redis queues drained to zero
-- live Redis clients remained owned by the Ractor that created them
+- Redis queues and PostgreSQL table queues drained to zero
+- live Redis clients and PostgreSQL connections remained owned by the Ractor
+  that created them
+
+Redis proves the network-client shape. PostgreSQL proves the database-connection
+shape. Together they demonstrate that `LocalPool` is not Redis-specific; it is a
+resource-locality primitive for live stateful clients.
 
 #### Inception pool
 

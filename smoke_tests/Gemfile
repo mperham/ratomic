@@ -3,6 +3,8 @@
 source "https://rubygems.org"
 
 gem "redis-client"
+gem "pg"
 gem "json"
+gem "irb", "~> 1.18"
 
 gem "ratomic", path: "../"

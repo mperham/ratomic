@@ -1,5 +1,5 @@
-# Run with `TYPE=Thread bundle exec ruby queue_redis.rb`
-# Run with `TYPE=Ractor bundle exec ruby queue_redis.rb`
+# Run with `TYPE=Thread bundle exec ruby redis/queue_redis.rb`
+# Run with `TYPE=Ractor bundle exec ruby redis/queue_redis.rb`
 require "ratomic"
 require "redis-client"
 
