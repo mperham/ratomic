@@ -18,7 +18,7 @@ use magnus::{
 use mpmc_queue::MpmcQueue;
 use parking_lot::Mutex;
 use rb_sys::{rb_ext_ractor_safe, rb_thread_call_without_gvl, ruby_special_consts, VALUE};
-use std::{ffi::c_void, mem::transmute};
+use std::{ffi::c_void, mem::transmute, time::Duration};
 
 fn value_to_raw(value: Value) -> VALUE {
     unsafe { transmute::<Value, VALUE>(value) }
@@ -36,6 +36,22 @@ fn make_shareable(ruby: &Ruby, value: Value) -> Result<Value, Error> {
     value.freeze();
     let ractor: RClass = ruby.class_object().const_get("Ractor")?;
     ractor.funcall("make_shareable", (value,))
+}
+
+unsafe extern "C" fn sleep_briefly_without_gvl(_: *mut c_void) -> *mut c_void {
+    std::thread::sleep(Duration::from_millis(1));
+    std::ptr::null_mut()
+}
+
+fn wait_for_entry_without_gvl() {
+    unsafe {
+        rb_thread_call_without_gvl(
+            Some(sleep_briefly_without_gvl),
+            std::ptr::null_mut(),
+            None,
+            std::ptr::null_mut(),
+        );
+    }
 }
 
 struct Counter(AtomicCounter);
@@ -158,10 +174,15 @@ impl HashMap {
         }
 
         let proc = ruby.block_proc()?;
-        let raw = rb_self.0.compute(value_to_raw(key), qnil_raw(), |value| {
-            proc.call::<_, Value>((unsafe { value_from_raw(value) },))
-                .map(value_to_raw)
-        })?;
+        let raw = rb_self.0.compute(
+            value_to_raw(key),
+            qnil_raw(),
+            wait_for_entry_without_gvl,
+            |value| {
+                proc.call::<_, Value>((unsafe { value_from_raw(value) },))
+                    .map(value_to_raw)
+            },
+        )?;
 
         Ok(unsafe { value_from_raw(raw) }.into_value_with(ruby))
     }

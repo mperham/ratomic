@@ -54,6 +54,21 @@ impl MapStore {
         self.map.len()
     }
 
+    fn with_entry<F, R, W>(&self, key: VALUE, mut on_locked: W, f: F) -> R
+    where
+        F: FnOnce(Entry<'_, RubyHashEql, VALUE>) -> R,
+        W: FnMut(),
+    {
+        let mut f = Some(f);
+        loop {
+            if let Some(entry) = self.map.try_entry(RubyHashEql(key)) {
+                return f.take().expect("entry closure already used")(entry);
+            }
+
+            on_locked();
+        }
+    }
+
     pub fn fetch_and_modify<F>(&self, key: VALUE, f: F)
     where
         F: FnOnce(VALUE) -> VALUE,
@@ -61,11 +76,18 @@ impl MapStore {
         self.map.alter(&RubyHashEql(key), |_, value| f(value));
     }
 
-    pub fn compute<F, E>(&self, key: VALUE, missing: VALUE, f: F) -> Result<VALUE, E>
+    pub fn compute<F, E, W>(
+        &self,
+        key: VALUE,
+        missing: VALUE,
+        on_locked: W,
+        f: F,
+    ) -> Result<VALUE, E>
     where
         F: FnOnce(VALUE) -> Result<VALUE, E>,
+        W: FnMut(),
     {
-        match self.map.entry(RubyHashEql(key)) {
+        self.with_entry(key, on_locked, |entry| match entry {
             Entry::Occupied(mut entry) => {
                 let new_value = f(*entry.get())?;
                 entry.insert(new_value);
@@ -76,7 +98,7 @@ impl MapStore {
                 entry.insert(new_value);
                 Ok(new_value)
             }
-        }
+        })
     }
 
     pub fn update<F, E>(&self, key: VALUE, f: F) -> Result<VALUE, E>

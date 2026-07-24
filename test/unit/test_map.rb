@@ -213,6 +213,32 @@ class MapUnitTest < Minitest::Test
     refute map.key?(:processed)
   end
 
+  def test_compute_does_not_deadlock_when_threads_contend_for_same_key
+    map = Ratomic::Map.new
+    started = Queue.new
+    worker = Thread.new do
+      map.compute("foo") do
+        started << true
+        sleep 0.2
+        "bar"
+      end
+    end
+
+    started.pop
+
+    result = Timeout.timeout(2) do
+      map.compute("foo") do
+        sleep 0.2
+        "baz"
+      end
+    end
+
+    worker.join
+
+    assert_equal "baz", result
+    assert_equal "baz", map["foo"]
+  end
+
   def test_fetch_or_store_returns_existing_value_without_yielding
     map = Ratomic::Map.new
     map[:source] = "postgres"
