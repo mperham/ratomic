@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## 0.4.2
+
 ### Fixed
 
 - Prevent `Map#compute` from deadlocking when multiple Ruby threads contend for the same key.
