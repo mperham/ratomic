@@ -9,7 +9,8 @@ PostgresFactory = Data.define(:database_url) do
   end
 end
 
-DATABASE_URL = Ractor.make_shareable(ENV.fetch("DATABASE_URL", "postgresql://ratomic:ratomic@localhost:5432/ratomic_smoke").dup.freeze)
+RATOMIC_PG_PORT = ENV.fetch("RATOMIC_PG_PORT", "5432")
+DATABASE_URL = Ractor.make_shareable(ENV.fetch("DATABASE_URL", "postgresql://ratomic:ratomic@localhost:#{RATOMIC_PG_PORT}/ratomic_smoke").dup.freeze)
 TIMES = Integer(ENV.fetch("TIMES", "20000"))
 PRODUCERS = Integer(ENV.fetch("PRODUCERS", "2"))
 CONSUMERS = Integer(ENV.fetch("CONSUMERS", "5"))
