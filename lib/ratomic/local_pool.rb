@@ -69,6 +69,7 @@ module Ratomic
   # @see Pool Use Pool for plain mutable Ruby values where ownership transfer
   #   is the desired safety model.
   class LocalPool
+    attr_reader :size
     # Create a per-Ractor local pool facade.
     #
     # @param size [Integer] maximum number of resources in each Ractor-local pool
@@ -127,6 +128,7 @@ module Ratomic
       pool.close
       nil
     end
+    alias_method :shutdown, :close
 
     # Minimal thread-safe resource pool used inside exactly one Ractor.
     class ResourcePool
