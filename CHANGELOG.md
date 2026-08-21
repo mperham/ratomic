@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## 0.4.3
+
 ### Added
 
 - Expose `Pool#size` and `LocalPool#size` and add `shutdown` aliases for connection pool compatibility.
