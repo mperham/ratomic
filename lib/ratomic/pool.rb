@@ -26,6 +26,7 @@ module Ratomic
   #     buffer << :change
   #   end
   class Pool
+    attr_reader :size
     # Create a pool and seed it with +size+ objects from the factory block.
     #
     # @param size [Integer] number of pooled objects to create up front
@@ -37,6 +38,7 @@ module Ratomic
       raise ArgumentError, "pool size must be positive" if size <= 0
       raise LocalJumpError, "no block given" unless block_given?
 
+      @size = size
       @timeout = timeout&.to_f
       @control = self.class.send(:new_control_ractor)
       size.times { @control.send([:checkin, yield], move: true) }
@@ -88,6 +90,8 @@ module Ratomic
     rescue Ractor::ClosedError, Ractor::Error
       nil
     end
+    # backwards compatibility with ConnectionPool
+    alias_method :shutdown, :close
 
     # Checkout an object, yield it, then move it back to the pool.
     #

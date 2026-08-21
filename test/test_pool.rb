@@ -18,12 +18,14 @@ class TestPool < Minitest::Test
       end
     end
 
+    assert_equal POOL_SIZE, POOL.size
     ractors.map { |ractor| ractor_value(ractor) }
     POOL_SIZE.times do
       POOL.checkout
     end
     # 100ms timeout
     refute POOL.checkout
+    POOL.shutdown
   end
 
 end

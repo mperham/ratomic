@@ -68,6 +68,8 @@ module Ratomic
 
     def with: () { (untyped object) -> untyped } -> untyped
     def close: () -> nil
+    def shutdown: () -> nil
+    def size: () -> Integer
   end
 
   class Pool
@@ -76,6 +78,8 @@ module Ratomic
     def checkout: () -> untyped
     def checkin: (untyped object) -> nil
     def close: () -> nil
+    def shutdown: () -> nil
+    def size: () -> Integer
     def with: () { (untyped object) -> untyped } -> untyped
   end
 end

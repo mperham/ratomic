@@ -78,6 +78,15 @@ class TestLocalPool < Minitest::Test
     assert_nil pool.close
   end
 
+  def test_size_and_shutdown
+    pool = Ratomic::LocalPool.new(size: 3, factory: FACTORY)
+
+    pool.with { |_object| nil }
+
+    assert_equal 3, pool.size
+    assert_nil pool.shutdown
+  end
+
   def test_threads_share_current_local_pool
     pool = Ratomic::LocalPool.new(size: 1, timeout: 0.1, factory: FACTORY)
     object_ids = Queue.new
